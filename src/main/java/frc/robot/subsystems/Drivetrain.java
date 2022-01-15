@@ -1,21 +1,16 @@
 package frc.robot.subsystems;
 
-//imports for Spark Max
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+// imports for Spark Max
 
-//Imports for Mecanum Drive
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj.drive.MecanumDrive;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
-//imports for Pigeon
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.sensors.PigeonIMU;
 import com.ctre.phoenix.sensors.PigeonIMU.CalibrationMode;
 import com.ctre.phoenix.sensors.PigeonIMU.GeneralStatus;
-
-
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import edu.wpi.first.wpilibj.drive.MecanumDrive;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Drivetrain extends SubsystemBase {
   private CANSparkMax motorFrontLeft;
@@ -44,22 +39,22 @@ public class Drivetrain extends SubsystemBase {
     pigeonMotorController = new WPI_TalonSRX(0);
     pigeon = new PigeonIMU(pigeonMotorController);
 
-    //pigeon.configTemperatureDompensationEnable(true, 0);
+    // pigeon.configTemperatureDompensationEnable(true, 0);
   }
 
-    public void initDefaultCommand() {
-      //TODO: 
-      //setDefaultCommand(new DriveTeloperated());
+  public void initDefaultCommand() {
+    // TODO:
+    // setDefaultCommand(new DriveTeloperated());
 
-    }
+  }
 
-    public void driveCartesian(double ySpeed, double xSpeed, double zRotation) {
-      mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation);
-    }
+  public void driveCartesian(double ySpeed, double xSpeed, double zRotation) {
+    mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation);
+  }
 
-    public void driveCartesianFieldOriented(double ySpeed, double xSpeed, double zRotation, double gyroAngle){
-      mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, gyroAngle);
-
+  public void driveCartesianFieldOriented(
+      double ySpeed, double xSpeed, double zRotation, double gyroAngle) {
+    mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, gyroAngle);
   }
 
   public void drivePolar(double magnitude, double angle, double zRotation) {
@@ -94,7 +89,6 @@ public class Drivetrain extends SubsystemBase {
       SmartDashboard.putBoolean("Reset Comp", false);
     }
   }
-  
 
   public double getAngle() {
     double angle = -pigeon.getFusedHeading() % 360;
