@@ -38,10 +38,10 @@ public class Drivetrain extends SubsystemBase {
   private Field2d field2d;
 
   public Drivetrain() {
-    motorFrontLeft = setupMotor(FRONT_LEFT);
-    motorFrontRight = setupMotor(FRONT_RIGHT);
-    motorBackLeft = setupMotor(REAR_LEFT);
-    motorBackRight = setupMotor(REAR_RIGHT);
+    motorFrontLeft = FRONT_LEFT.createMotor();
+    motorFrontRight = FRONT_RIGHT.createMotor();
+    motorBackLeft = REAR_LEFT.createMotor();
+    motorBackRight = REAR_RIGHT.createMotor();
 
     mecanumDrive = new MecanumDrive(motorFrontLeft, motorFrontRight, motorBackLeft, motorBackRight);
     // mecanumDrive.setDeadband(0.05);
@@ -54,31 +54,6 @@ public class Drivetrain extends SubsystemBase {
 
     field2d = new Field2d();
     SmartDashboard.putData("Field", field2d);
-  }
-
-  private CANSparkMax setupMotor(MotorConfig config) {
-    var motor = new CANSparkMax(config.getCanId(), MotorType.kBrushless);
-    motor.restoreFactoryDefaults();
-    motor.setClosedLoopRampRate(config.getClosedLoopRampRate());
-    motor.setIdleMode(config.getIdleMode());
-    motor.setInverted(config.isInverted());
-    motor.setOpenLoopRampRate(config.getOpenLoopRampRate());
-
-    SparkMaxPIDController pidController = motor.getPIDController();
-    for (int i = 0; i < config.getPidConfigs().size(); i++) {
-      PIDConfig pidConfig = config.getPidConfigs().get(i);
-      pidController.setP(pidConfig.getKP(), i);
-      pidController.setI(pidConfig.getKI(), i);
-      pidController.setD(pidConfig.getKD(), i);
-      pidController.setFF(pidConfig.getKFF(), i);
-      pidController.setOutputRange(pidConfig.getOutputRangeLow(), pidConfig.getOutputRangeHigh(), i);
-      pidController.setSmartMotionAllowedClosedLoopError(pidConfig.getAllowedClosedLoopError(), i);
-      pidController.setSmartMotionMaxAccel(pidConfig.getMaxAcceleration(), i);
-      pidController.setSmartMotionMaxVelocity(pidConfig.getMaxVelocity(), i);
-      pidController.setSmartMotionMinOutputVelocity(pidConfig.getMinOutputVelocity(), i);
-    }
-    
-    return motor;
   }
 
   // private void testing() {

@@ -30,14 +30,6 @@ public final class Constants {
     public static final int XBOX_PORT = 1;
   }
   
-
-  // Spark Max CAN
-  // public static final int DRIVETRAIN_FRONT_LEFT = 1;
-  // public static final int DRIVETRAIN_FRONT_RIGHT = 2;
-  // public static final int DRIVETRAIN_REAR_LEFT = 3;
-  // public static final int DRIVETRAIN_REAR_RIGHT = 4;
-
-  // Phoenix CAN
   
 
   /**
@@ -71,23 +63,23 @@ public final class Constants {
     .build();
     public static final MotorConfig FRONT_LEFT = MotorConfig.builder()
       .canId(0)
-      .idleMode(IdleMode.kCoast)
+      .idleMode(IdleMode.kBrake)
       .pidConfig(PID_DEFAULTS)
       .build();
     public static final MotorConfig FRONT_RIGHT = MotorConfig.builder()
       .canId(1)
-      .idleMode(IdleMode.kCoast)
+      .idleMode(IdleMode.kBrake)
       .inverted(true)
       .pidConfig(PID_DEFAULTS)
       .build();    
     public static final MotorConfig REAR_LEFT = MotorConfig.builder()
       .canId(2)
-      .idleMode(IdleMode.kCoast)
+      .idleMode(IdleMode.kBrake)
       .pidConfig(PID_DEFAULTS)
       .build();
     public static final MotorConfig REAR_RIGHT = MotorConfig.builder()
       .canId(3)
-      .idleMode(IdleMode.kCoast)
+      .idleMode(IdleMode.kBrake)
       .inverted(true)
       .pidConfig(PID_DEFAULTS)
       .build();
@@ -126,4 +118,20 @@ public final class Constants {
     // public static final double kPRearRightVel = 0.5;
   }
 
+  public static final class IntakeConstants {
+    // TODO: find these values from SimId
+    private static final PIDConfig PID_DEFAULTS = PIDConfig.builder()
+      .kP(0.8).kI(0).kD(0).kFF(5)
+      // .maxAcceleration(maxAcceleration)
+      // .maxVelocity(maxVelocity)
+      // .outputRangeHigh(outputRangeHigh)
+      // .outputRangeLow(outputRangeLow)
+      // .minOutputVelocity(minOutputVelocity)
+    .build();
+    public static final MotorConfig INTAKE_MOTOR = MotorConfig.builder()
+      .canId(4)
+      .idleMode(IdleMode.kCoast)
+      .pidConfig(PID_DEFAULTS)
+      .build();
+  }
 }
