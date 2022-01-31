@@ -133,5 +133,6 @@ public final class Constants {
       .idleMode(IdleMode.kCoast)
       .pidConfig(PID_DEFAULTS)
       .build();
+    public static final int SPEED = 5700;
   }
 }

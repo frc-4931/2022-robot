@@ -6,13 +6,47 @@
  */
 package frc.robot.subsystems;
 
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMax.ControlType;
+
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import static frc.robot.Constants.IntakeConstants.*;
 
 public class Intake extends SubsystemBase {
-  private double intakespeed; // this value is subject to change
-  private int maxRPM = 5700;
+  private final CANSparkMax intakeMotor;
+  private boolean spinning = false;
 
-  public void IntakeSpeed() {
-    intakespeed = maxRPM * 0.50;
+  public Intake() {
+    intakeMotor = INTAKE_MOTOR.createMotor();
+  }
+
+  @Override
+  public void periodic() {
+    SmartDashboard.putBoolean("Intake", spinning);
+  }
+
+  private void setSpeed(int rpm) {
+    intakeMotor.getPIDController().setReference(rpm, ControlType.kSmartVelocity);
+  }
+
+  public void on() {
+    spinning = true;
+    setSpeed(SPEED);
+  }
+
+  public void off() {
+    spinning = false;
+    setSpeed(0);
+  }
+
+  public void toggle() {
+    spinning = !spinning;
+    if (spinning) {
+      on();
+    }
+    else {
+      off();
+    }
   }
 }
