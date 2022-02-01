@@ -7,21 +7,14 @@ import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.ctre.phoenix.sensors.PigeonIMU.CalibrationMode;
 import com.ctre.phoenix.sensors.PigeonIMU.GeneralStatus;
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.SparkMaxPIDController;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
 import edu.wpi.first.math.kinematics.MecanumDriveOdometry;
 import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.MotorConfig;
-import frc.robot.MotorConfig.PIDConfig;
 
 public class Drivetrain extends SubsystemBase {
   CANSparkMax motorFrontLeft;
@@ -37,7 +30,9 @@ public class Drivetrain extends SubsystemBase {
   private MecanumDriveOdometry mecanumDriveOdometry;
   private Field2d field2d;
 
-  public Drivetrain() {
+  public Drivetrain(Field2d field2d) {
+    this.field2d = field2d;
+
     motorFrontLeft = FRONT_LEFT.createMotor();
     motorFrontRight = FRONT_RIGHT.createMotor();
     motorBackLeft = REAR_LEFT.createMotor();
@@ -51,15 +46,7 @@ public class Drivetrain extends SubsystemBase {
     // pigeon.configTemperatureDompensationEnable(true, 0);
 
     mecanumDriveOdometry = new MecanumDriveOdometry(DRIVE_KINEMATICS, pigeon.getRotation2d());
-
-    field2d = new Field2d();
-    SmartDashboard.putData("Field", field2d);
   }
-
-  // private void testing() {
-  //   SparkMaxPIDController frontLeftPidController = motorFrontLeft.getPIDController();
-  //   frontLeftPidController. setReference(value, ctrl, pidSlot)
-  // }
 
   public void setInitialPose(Pose2d initialPose) {
     mecanumDriveOdometry.resetPosition(pose, pigeon.getRotation2d());

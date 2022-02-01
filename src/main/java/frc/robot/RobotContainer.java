@@ -17,6 +17,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -38,7 +39,8 @@ import frc.robot.subsystems.Drivetrain;
  * subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-  private final Drivetrain drivetrain = new Drivetrain();
+  private final Field2d field2d;
+  private final Drivetrain drivetrain;
   private XboxController driver1Controller = new XboxController(OIConstants.XBOX_PORT);
 
   private SendableChooser<AutonomousRoute> routeChooser = new SendableChooser<>();
@@ -48,6 +50,10 @@ public class RobotContainer {
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
+    field2d = new Field2d();
+    SmartDashboard.putData("Field", field2d);
+    drivetrain = new Drivetrain(field2d);
+
     // Configure the button bindings
     configureButtonBindings();
 
@@ -106,6 +112,7 @@ public class RobotContainer {
 
     // use the selected trajectory
     PathPlannerTrajectory trajectory = trajectories.get(routeChooser.getSelected());
+    field2d.getObject("traj").setTrajectory(trajectory);
 
     ETMecanumControllerCommand mecanumControllerCommand = new ETMecanumControllerCommand(trajectory,
         drivetrain::getPose,
@@ -117,7 +124,8 @@ public class RobotContainer {
         new ProfiledPIDController(
             AutoConstants.kPThetaController, 0, 0, AutoConstants.kThetaControllerConstraints),
         AutoConstants.MAX_SPEED_METERS_PER_SECOND,
-        drivetrain::setDriveSpeeds, drivetrain);
+        drivetrain::setDriveSpeeds, 
+        drivetrain);
 
     /*
      * use mine since it controls rotation as well.
