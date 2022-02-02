@@ -4,19 +4,13 @@
 
 package frc.robot;
 
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import com.pathplanner.lib.PathPlanner;
 import com.pathplanner.lib.PathPlannerTrajectory;
-
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -27,27 +21,32 @@ import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.OIConstants;
 import frc.robot.commands.ETMecanumControllerCommand;
 import frc.robot.subsystems.Drivetrain;
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
- * This class is where the bulk of the robot should be declared. Since
- * Command-based is a
- * "declarative" paradigm, very little robot logic should actually be handled in
- * the {@link Robot}
- * periodic methods (other than the scheduler calls). Instead, the structure of
- * the robot (including
+ * This class is where the bulk of the robot should be declared. Since Command-based is a
+ * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
+ * periodic methods (other than the scheduler calls). Instead, the structure of the robot (including
  * subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-  private final Drivetrain drivetrain = new Drivetrain();
+  private final Field2d field2d;
+  private final Drivetrain drivetrain;
   private XboxController driver1Controller = new XboxController(OIConstants.XBOX_PORT);
 
   private SendableChooser<AutonomousRoute> routeChooser = new SendableChooser<>();
   private Map<AutonomousRoute, PathPlannerTrajectory> trajectories;
 
-  /**
-   * The container for the robot. Contains subsystems, OI devices, and commands.
-   */
+  /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    field2d = new Field2d();
+    SmartDashboard.putData("Field", field2d);
+    drivetrain = new Drivetrain(field2d);
+
     // Configure the button bindings
     configureButtonBindings();
 
@@ -61,7 +60,8 @@ public class RobotContainer {
     double strafe = driver1Controller.getLeftX();
     double rotation = driver1Controller.getRightX();
 
-    Command fieldOriented = new RunCommand(() -> drivetrain.driveCartesian(strafe, forward, rotation), drivetrain);
+    Command fieldOriented =
+        new RunCommand(() -> drivetrain.driveCartesian(strafe, forward, rotation), drivetrain);
     drivetrain.setDefaultCommand(fieldOriented);
   }
 
@@ -72,24 +72,27 @@ public class RobotContainer {
   }
 
   private void loadPaths() {
-    trajectories = Arrays.stream(AutonomousRoute.values()).collect(
-        Collectors.toMap(Function.identity(), route -> PathPlanner.loadPath(route.name(),
-            AutoConstants.MAX_SPEED_METERS_PER_SECOND,
-            AutoConstants.MAX_ACCELERATION_METERS_PER_SECOND_SQUARED),
-            (existing, replacement) -> existing, // no merging, first one in wins
-            () -> new EnumMap<>(AutonomousRoute.class)));
+    trajectories =
+        Arrays.stream(AutonomousRoute.values())
+            .collect(
+                Collectors.toMap(
+                    Function.identity(),
+                    route ->
+                        PathPlanner.loadPath(
+                            route.name(),
+                            AutoConstants.MAX_SPEED_METERS_PER_SECOND,
+                            AutoConstants.MAX_ACCELERATION_METERS_PER_SECOND_SQUARED),
+                    (existing, replacement) -> existing, // no merging, first one in wins
+                    () -> new EnumMap<>(AutonomousRoute.class)));
   }
 
   /**
-   * Use this method to define your button->command mappings. Buttons can be
-   * created by
+   * Use this method to define your button->command mappings. Buttons can be created by
    * instantiating a {@link GenericHID} or one of its subclasses ({@link
-   * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing
-   * it to a {@link
+   * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing it to a {@link
    * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
-  private void configureButtonBindings() {
-  }
+  private void configureButtonBindings() {}
 
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
@@ -106,18 +109,22 @@ public class RobotContainer {
 
     // use the selected trajectory
     PathPlannerTrajectory trajectory = trajectories.get(routeChooser.getSelected());
+    field2d.getObject("traj").setTrajectory(trajectory);
 
-    ETMecanumControllerCommand mecanumControllerCommand = new ETMecanumControllerCommand(trajectory,
-        drivetrain::getPose,
-        DriveConstants.DRIVE_KINEMATICS,
+    ETMecanumControllerCommand mecanumControllerCommand =
+        new ETMecanumControllerCommand(
+            trajectory,
+            drivetrain::getPose,
+            DriveConstants.DRIVE_KINEMATICS,
 
-        // Position contollers
-        new PIDController(AutoConstants.kPXController, 0, 0),
-        new PIDController(AutoConstants.kPYController, 0, 0),
-        new ProfiledPIDController(
-            AutoConstants.kPThetaController, 0, 0, AutoConstants.kThetaControllerConstraints),
-        AutoConstants.MAX_SPEED_METERS_PER_SECOND,
-        drivetrain::setDriveSpeeds, drivetrain);
+            // Position contollers
+            new PIDController(AutoConstants.kPXController, 0, 0),
+            new PIDController(AutoConstants.kPYController, 0, 0),
+            new ProfiledPIDController(
+                AutoConstants.kPThetaController, 0, 0, AutoConstants.kThetaControllerConstraints),
+            AutoConstants.MAX_SPEED_METERS_PER_SECOND,
+            drivetrain::setDriveSpeeds,
+            drivetrain);
 
     /*
      * use mine since it controls rotation as well.
@@ -127,26 +134,26 @@ public class RobotContainer {
      * drivetrain::getPose,
      * // DriveConstants.kFeedforward,
      * DriveConstants.DRIVE_KINEMATICS,
-     * 
+     *
      * // Position contollers
      * new PIDController(AutoConstants.kPXController, 0, 0),
      * new PIDController(AutoConstants.kPYController, 0, 0),
      * new ProfiledPIDController(
      * AutoConstants.kPThetaController, 0, 0,
      * AutoConstants.kThetaControllerConstraints),
-     * 
+     *
      * // TODO: desired rotation??? - should come from trajectory
-     * 
+     *
      * // Needed for normalizing wheel speeds
      * AutoConstants.MAX_SPEED_METERS_PER_SECOND,
-     * 
+     *
      * // Velocity PID's
      * // new PIDController(DriveConstants.kPFrontLeftVel, 0, 0),
      * // new PIDController(DriveConstants.kPRearLeftVel, 0, 0),
      * // new PIDController(DriveConstants.kPFrontRightVel, 0, 0),
      * // new PIDController(DriveConstants.kPRearRightVel, 0, 0),
      * // drivetrain::getCurrentWheelSpeeds,
-     * 
+     *
      * drivetrain::setDriveSpeeds, // Consumer for the output speeds
      * drivetrain);
      */

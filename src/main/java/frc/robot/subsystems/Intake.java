@@ -6,12 +6,12 @@
  */
 package frc.robot.subsystems;
 
+import static frc.robot.Constants.IntakeConstants.*;
+
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.ControlType;
-
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import static frc.robot.Constants.IntakeConstants.*;
 
 public class Intake extends SubsystemBase {
   private final CANSparkMax intakeMotor;
@@ -44,8 +44,7 @@ public class Intake extends SubsystemBase {
     spinning = !spinning;
     if (spinning) {
       on();
-    }
-    else {
+    } else {
       off();
     }
   }

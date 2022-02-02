@@ -3,25 +3,17 @@ package frc.robot.subsystems;
 import static frc.robot.Constants.DriveConstants.*;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
-import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.ctre.phoenix.sensors.PigeonIMU.CalibrationMode;
 import com.ctre.phoenix.sensors.PigeonIMU.GeneralStatus;
+import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.SparkMaxPIDController;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
-
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
 import edu.wpi.first.math.kinematics.MecanumDriveOdometry;
 import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.MotorConfig;
-import frc.robot.MotorConfig.PIDConfig;
 
 public class Drivetrain extends SubsystemBase {
   CANSparkMax motorFrontLeft;
@@ -29,7 +21,7 @@ public class Drivetrain extends SubsystemBase {
   CANSparkMax motorBackLeft;
   CANSparkMax motorBackRight;
   WPI_TalonSRX pigeonMotorController;
-  
+
   private WPI_PigeonIMU pigeon;
   private Pose2d pose;
 
@@ -37,7 +29,9 @@ public class Drivetrain extends SubsystemBase {
   private MecanumDriveOdometry mecanumDriveOdometry;
   private Field2d field2d;
 
-  public Drivetrain() {
+  public Drivetrain(Field2d field2d) {
+    this.field2d = field2d;
+
     motorFrontLeft = FRONT_LEFT.createMotor();
     motorFrontRight = FRONT_RIGHT.createMotor();
     motorBackLeft = REAR_LEFT.createMotor();
@@ -45,21 +39,13 @@ public class Drivetrain extends SubsystemBase {
 
     mecanumDrive = new MecanumDrive(motorFrontLeft, motorFrontRight, motorBackLeft, motorBackRight);
     // mecanumDrive.setDeadband(0.05);
-    
+
     pigeonMotorController = new WPI_TalonSRX(PIGEON_MOTOR_PORT);
     pigeon = new WPI_PigeonIMU(pigeonMotorController);
     // pigeon.configTemperatureDompensationEnable(true, 0);
 
     mecanumDriveOdometry = new MecanumDriveOdometry(DRIVE_KINEMATICS, pigeon.getRotation2d());
-
-    field2d = new Field2d();
-    SmartDashboard.putData("Field", field2d);
   }
-
-  // private void testing() {
-  //   SparkMaxPIDController frontLeftPidController = motorFrontLeft.getPIDController();
-  //   frontLeftPidController. setReference(value, ctrl, pidSlot)
-  // }
 
   public void setInitialPose(Pose2d initialPose) {
     mecanumDriveOdometry.resetPosition(pose, pigeon.getRotation2d());
@@ -70,9 +56,10 @@ public class Drivetrain extends SubsystemBase {
   @Override
   public void periodic() {
     // Get my wheel speeds
-    var wheelSpeeds = new MecanumDriveWheelSpeeds(
-        motorFrontLeft.getEncoder().getVelocity(), motorFrontRight.getEncoder().getVelocity(),
-        motorBackLeft.getEncoder().getVelocity(), motorBackRight.getEncoder().getVelocity());
+    var wheelSpeeds =
+        new MecanumDriveWheelSpeeds(
+            motorFrontLeft.getEncoder().getVelocity(), motorFrontRight.getEncoder().getVelocity(),
+            motorBackLeft.getEncoder().getVelocity(), motorBackRight.getEncoder().getVelocity());
 
     var gyroAngle = pigeon.getRotation2d();
 
@@ -87,8 +74,6 @@ public class Drivetrain extends SubsystemBase {
     super.simulationPeriodic();
   }
 
-  
-
   public Pose2d getPose() {
     return pose;
   }
@@ -97,8 +82,7 @@ public class Drivetrain extends SubsystemBase {
     mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation);
   }
 
-  public void driveCartesianFieldOriented(
-      double ySpeed, double xSpeed, double zRotation) {
+  public void driveCartesianFieldOriented(double ySpeed, double xSpeed, double zRotation) {
     mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, getCompassHeading());
   }
 
@@ -106,9 +90,7 @@ public class Drivetrain extends SubsystemBase {
     mecanumDrive.drivePolar(magnitude, angle, zRotation);
   }
 
-  public void setDriveSpeeds(MecanumDriveWheelSpeeds wheelSpeeds) {
-
-  }
+  public void setDriveSpeeds(MecanumDriveWheelSpeeds wheelSpeeds) {}
 
   public void stop() {
     mecanumDrive.stopMotor();
