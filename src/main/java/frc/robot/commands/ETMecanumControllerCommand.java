@@ -1,11 +1,7 @@
 package frc.robot.commands;
 
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import com.pathplanner.lib.PathPlannerTrajectory;
 import com.pathplanner.lib.PathPlannerTrajectory.PathPlannerState;
-
 import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
@@ -14,8 +10,9 @@ import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
 import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.CommandBase;
-// import edu.wpi.first.wpilibj2.command.MecanumControllerCommand;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class ETMecanumControllerCommand extends CommandBase {
   private final Timer timer = new Timer();
@@ -25,15 +22,17 @@ public class ETMecanumControllerCommand extends CommandBase {
   private final HolonomicDriveController controller;
   private final double maxWheelVelocityMetersPerSecond;
   private final Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds;
-  
-  public ETMecanumControllerCommand(PathPlannerTrajectory trajectory, Supplier<Pose2d> pose,
-    MecanumDriveKinematics kinematics, 
-    PIDController xController,
-    PIDController yController,
-    ProfiledPIDController thetaController,
-    double maxWheelVelocityMetersPerSecond, 
-    Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds,
-    Subsystem... requirements) {
+
+  public ETMecanumControllerCommand(
+      PathPlannerTrajectory trajectory,
+      Supplier<Pose2d> pose,
+      MecanumDriveKinematics kinematics,
+      PIDController xController,
+      PIDController yController,
+      ProfiledPIDController thetaController,
+      double maxWheelVelocityMetersPerSecond,
+      Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds,
+      Subsystem... requirements) {
 
     this.trajectory = trajectory;
     this.pose = pose;
@@ -50,14 +49,15 @@ public class ETMecanumControllerCommand extends CommandBase {
     timer.reset();
     timer.start();
   }
-  
+
   @Override
   public void execute() {
     double curTime = timer.get();
-    
+
     var desiredState = (PathPlannerState) trajectory.sample(curTime);
 
-    var targetChassisSpeeds = controller.calculate(pose.get(), desiredState, desiredState.holonomicRotation);
+    var targetChassisSpeeds =
+        controller.calculate(pose.get(), desiredState, desiredState.holonomicRotation);
     var targetWheelSpeeds = kinematics.toWheelSpeeds(targetChassisSpeeds);
 
     targetWheelSpeeds.desaturate(maxWheelVelocityMetersPerSecond);
@@ -68,12 +68,11 @@ public class ETMecanumControllerCommand extends CommandBase {
     var rearRightSpeedSetpoint = targetWheelSpeeds.rearRightMetersPerSecond;
 
     outputWheelSpeeds.accept(
-          new MecanumDriveWheelSpeeds(
-              frontLeftSpeedSetpoint,
-              frontRightSpeedSetpoint,
-              rearLeftSpeedSetpoint,
-              rearRightSpeedSetpoint));
-
+        new MecanumDriveWheelSpeeds(
+            frontLeftSpeedSetpoint,
+            frontRightSpeedSetpoint,
+            rearLeftSpeedSetpoint,
+            rearRightSpeedSetpoint));
   }
 
   @Override
