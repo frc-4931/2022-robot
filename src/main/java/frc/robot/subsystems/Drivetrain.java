@@ -2,11 +2,12 @@ package frc.robot.subsystems;
 
 import static frc.robot.Constants.DriveConstants.*;
 
-import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.sensors.PigeonIMU.CalibrationMode;
 import com.ctre.phoenix.sensors.PigeonIMU.GeneralStatus;
 import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMax.ControlType;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.MecanumDriveOdometry;
 import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
@@ -20,7 +21,7 @@ public class Drivetrain extends SubsystemBase {
   CANSparkMax motorFrontRight;
   CANSparkMax motorBackLeft;
   CANSparkMax motorBackRight;
-  WPI_TalonSRX pigeonMotorController;
+  // WPI_TalonSRX pigeonMotorController;
 
   private WPI_PigeonIMU pigeon;
   private Pose2d pose;
@@ -40,8 +41,8 @@ public class Drivetrain extends SubsystemBase {
     mecanumDrive = new MecanumDrive(motorFrontLeft, motorFrontRight, motorBackLeft, motorBackRight);
     // mecanumDrive.setDeadband(0.05);
 
-    pigeonMotorController = new WPI_TalonSRX(PIGEON_MOTOR_PORT);
-    pigeon = new WPI_PigeonIMU(pigeonMotorController);
+    // pigeonMotorController = new WPI_TalonSRX(PIGEON_MOTOR_PORT);
+    pigeon = new WPI_PigeonIMU(PIGEON_MOTOR_PORT);
     // pigeon.configTemperatureDompensationEnable(true, 0);
 
     mecanumDriveOdometry = new MecanumDriveOdometry(DRIVE_KINEMATICS, pigeon.getRotation2d());
@@ -90,7 +91,12 @@ public class Drivetrain extends SubsystemBase {
     mecanumDrive.drivePolar(magnitude, angle, zRotation);
   }
 
-  public void setDriveSpeeds(MecanumDriveWheelSpeeds wheelSpeeds) {}
+  public void setDriveSpeeds(MecanumDriveWheelSpeeds wheelSpeeds) {
+    motorFrontLeft.getPIDController().setReference(wheelSpeeds.frontLeftMetersPerSecond, ControlType.kSmartVelocity, 0);
+    motorFrontRight.getPIDController().setReference(wheelSpeeds.frontRightMetersPerSecond, ControlType.kSmartVelocity, 0);
+    motorBackLeft.getPIDController().setReference(wheelSpeeds.rearLeftMetersPerSecond, ControlType.kSmartVelocity, 0);
+    motorBackRight.getPIDController().setReference(wheelSpeeds.rearRightMetersPerSecond, ControlType.kSmartVelocity, 0);
+  }
 
   public void stop() {
     mecanumDrive.stopMotor();
@@ -156,10 +162,6 @@ public class Drivetrain extends SubsystemBase {
   }
 
   public void zero() {
-    pigeon.setFusedHeading(0);
-  }
-
-  public void reset() {
     pigeon.setFusedHeading(0);
   }
 }
