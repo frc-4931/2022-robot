@@ -1,3 +1,9 @@
+/**
+ * TITLE: DriveTrain 
+ * PURPOSE: create a drive train
+ * TODO: set default command for init
+ * INFO: motor will be NEO and controler will be CANSparkMax
+ */
 package frc.robot.subsystems;
 
 // imports for Spark Max
@@ -43,8 +49,7 @@ public class Drivetrain extends SubsystemBase {
   }
 
   public void initDefaultCommand() {
-    // TODO:
-    // setDefaultCommand(new DriveTeloperated());
+  
 
   }
 
@@ -65,6 +70,7 @@ public class Drivetrain extends SubsystemBase {
     mecanumDrive.stopMotor();
   }
 
+//this will set up the smartDashboard display
   public void log() {
     SmartDashboard.putNumber("Front Left Motor Speed", motorFrontLeft.get());
     SmartDashboard.putNumber("Back Left Motor Speed", motorBackLeft.get());
@@ -89,7 +95,7 @@ public class Drivetrain extends SubsystemBase {
       SmartDashboard.putBoolean("Reset Comp", false);
     }
   }
-
+//these methods are using the pigeon gyro sensor
   public double getAngle() {
     double angle = -pigeon.getFusedHeading() % 360;
     double out = (angle < -180) ? angle + 360 : angle;
