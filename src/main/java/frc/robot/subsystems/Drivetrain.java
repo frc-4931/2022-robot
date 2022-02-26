@@ -1,64 +1,114 @@
 package frc.robot.subsystems;
 
-// imports for Spark Max
+import static frc.robot.Constants.DriveConstants.*;
 
-import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
-import com.ctre.phoenix.sensors.PigeonIMU;
 import com.ctre.phoenix.sensors.PigeonIMU.CalibrationMode;
 import com.ctre.phoenix.sensors.PigeonIMU.GeneralStatus;
+import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import com.revrobotics.CANSparkMax.ControlType;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.kinematics.MecanumDriveOdometry;
+import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Drivetrain extends SubsystemBase {
-  private CANSparkMax motorFrontLeft;
-  private CANSparkMax motorFrontRight;
-  private CANSparkMax motorBackLeft;
-  private CANSparkMax motorBackRight;
-  private WPI_TalonSRX pigeonMotorController;
-  private static final int FrontLeftDeviceID = 1;
-  private static final int FrontRightDeviceID = 2;
-  private static final int BackLeftDeviceID = 3;
-  private static final int BackRightDeviceID = 4;
-  private PigeonIMU pigeon;
+  CANSparkMax motorFrontLeft;
+  CANSparkMax motorFrontRight;
+  CANSparkMax motorBackLeft;
+  CANSparkMax motorBackRight;
+  // WPI_TalonSRX pigeonMotorController;
+
+  private WPI_PigeonIMU pigeon;
+  private Pose2d pose;
 
   private MecanumDrive mecanumDrive;
+  private MecanumDriveOdometry mecanumDriveOdometry;
+  private Field2d field2d;
 
-  public Drivetrain() {
-    motorFrontLeft = new CANSparkMax(FrontLeftDeviceID, MotorType.kBrushless);
-    motorFrontRight = new CANSparkMax(FrontRightDeviceID, MotorType.kBrushless);
-    motorBackLeft = new CANSparkMax(BackLeftDeviceID, MotorType.kBrushless);
-    motorBackRight = new CANSparkMax(BackRightDeviceID, MotorType.kBrushless);
+  public Drivetrain(Field2d field2d) {
+    this.field2d = field2d;
+
+    motorFrontLeft = FRONT_LEFT.createMotor();
+    motorFrontRight = FRONT_RIGHT.createMotor();
+    motorBackLeft = REAR_LEFT.createMotor();
+    motorBackRight = REAR_RIGHT.createMotor();
 
     mecanumDrive = new MecanumDrive(motorFrontLeft, motorFrontRight, motorBackLeft, motorBackRight);
+    // mecanumDrive.setDeadband(0.05);
 
-    mecanumDrive.setDeadband(0.05);
-
-    pigeonMotorController = new WPI_TalonSRX(0);
-    pigeon = new PigeonIMU(pigeonMotorController);
-
+    pigeon = new WPI_PigeonIMU(PIGEON_MOTOR_PORT);
     // pigeon.configTemperatureDompensationEnable(true, 0);
+
+    mecanumDriveOdometry = new MecanumDriveOdometry(DRIVE_KINEMATICS, pigeon.getRotation2d());
   }
 
-  public void initDefaultCommand() {
-    // TODO:
-    // setDefaultCommand(new DriveTeloperated());
+  public void setInitialPose(Pose2d initialPose) {
+    mecanumDriveOdometry.resetPosition(pose, pigeon.getRotation2d());
+    pose = mecanumDriveOdometry.getPoseMeters();
+    field2d.setRobotPose(mecanumDriveOdometry.getPoseMeters());
+  }
 
+  @Override
+  public void periodic() {
+    // Get my wheel speeds
+    var wheelSpeeds =
+        new MecanumDriveWheelSpeeds(
+            motorFrontLeft.getEncoder().getVelocity(), motorFrontRight.getEncoder().getVelocity(),
+            motorBackLeft.getEncoder().getVelocity(), motorBackRight.getEncoder().getVelocity());
+
+    var gyroAngle = pigeon.getRotation2d();
+
+    // Update the pose
+    pose = mecanumDriveOdometry.update(gyroAngle, wheelSpeeds);
+    field2d.setRobotPose(mecanumDriveOdometry.getPoseMeters());
+
+    SmartDashboard.putNumber("LeftFrontVelocity", wheelSpeeds.frontLeftMetersPerSecond);
+    SmartDashboard.putNumber("RightFrontVelocity", wheelSpeeds.frontRightMetersPerSecond);
+    SmartDashboard.putNumber("LeftRearVelocity", wheelSpeeds.rearLeftMetersPerSecond);
+    SmartDashboard.putNumber("RightRearVelocity", wheelSpeeds.rearRightMetersPerSecond);
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    // TODO Auto-generated method stub
+    super.simulationPeriodic();
+  }
+
+  public Pose2d getPose() {
+    return pose;
   }
 
   public void driveCartesian(double ySpeed, double xSpeed, double zRotation) {
     mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation);
   }
 
-  public void driveCartesianFieldOriented(
-      double ySpeed, double xSpeed, double zRotation, double gyroAngle) {
-    mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, gyroAngle);
+  public void driveCartesianFieldOriented(double ySpeed, double xSpeed, double zRotation) {
+    System.out.printf(
+        "drive y: %d x: %d z: %d heading: %d", ySpeed, xSpeed, zRotation, getCompassHeading());
+    mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, getCompassHeading());
   }
 
   public void drivePolar(double magnitude, double angle, double zRotation) {
     mecanumDrive.drivePolar(magnitude, angle, zRotation);
+  }
+
+  public void setDriveSpeeds(MecanumDriveWheelSpeeds wheelSpeeds) {
+    motorFrontLeft
+        .getPIDController()
+        .setReference(wheelSpeeds.frontLeftMetersPerSecond, ControlType.kSmartVelocity, 0);
+    motorFrontRight
+        .getPIDController()
+        .setReference(wheelSpeeds.frontRightMetersPerSecond, ControlType.kSmartVelocity, 0);
+    motorBackLeft
+        .getPIDController()
+        .setReference(wheelSpeeds.rearLeftMetersPerSecond, ControlType.kSmartVelocity, 0);
+    motorBackRight
+        .getPIDController()
+        .setReference(wheelSpeeds.rearRightMetersPerSecond, ControlType.kSmartVelocity, 0);
   }
 
   public void stop() {
@@ -125,10 +175,6 @@ public class Drivetrain extends SubsystemBase {
   }
 
   public void zero() {
-    pigeon.setFusedHeading(0);
-  }
-
-  public void reset() {
     pigeon.setFusedHeading(0);
   }
 }
