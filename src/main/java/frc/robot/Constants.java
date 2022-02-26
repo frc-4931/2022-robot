@@ -144,5 +144,6 @@ public final class Constants {
             .build();
     public static final MotorConfig INTAKE_MOTOR =
         MotorConfig.builder().canId(4).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).build();
+    public static final int SPEED = 5700;
   }
 }
