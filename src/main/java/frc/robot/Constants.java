@@ -21,7 +21,11 @@ import frc.robot.MotorConfig.PIDConfig;
  */
 public final class Constants {
   public static final class OIConstants {
-    public static final int XBOX_PORT = 1;
+    public static final boolean USE_XBOX = true;
+    public static final int DRIVER_1 = 0;
+    public static final int DRIVER_2 = 1;
+
+    public static final int FRONT_CAMERA = 0;
   }
 
   /** Constants related to the Autonomous mode. */
@@ -42,6 +46,10 @@ public final class Constants {
   }
 
   public static final class DriveConstants {
+    private static final double WHEEL_DIAMETER_M = Units.inchesToMeters(8);
+    private static final double DRIVE_GEAR_RATIO = (14d / 70d) * (66d / 30d);
+    private static final double ENCODER_POSITION_CONVERSION =
+        Math.PI * WHEEL_DIAMETER_M / DRIVE_GEAR_RATIO;
     // TODO: Find actual values for these!
     private static final PIDConfig PID_DEFAULTS =
         PIDConfig.builder()
@@ -56,22 +64,34 @@ public final class Constants {
             // .minOutputVelocity(minOutputVelocity)
             .build();
     public static final MotorConfig FRONT_LEFT =
-        MotorConfig.builder().canId(0).idleMode(IdleMode.kBrake).pidConfig(PID_DEFAULTS).build();
+        MotorConfig.builder()
+            .canId(10)
+            .idleMode(IdleMode.kBrake)
+            .pidConfig(PID_DEFAULTS)
+            .positionConversionFactor(ENCODER_POSITION_CONVERSION)
+            .build();
     public static final MotorConfig FRONT_RIGHT =
         MotorConfig.builder()
-            .canId(1)
+            .canId(5)
             .idleMode(IdleMode.kBrake)
-            .inverted(true)
             .pidConfig(PID_DEFAULTS)
+            .positionConversionFactor(ENCODER_POSITION_CONVERSION)
             .build();
     public static final MotorConfig REAR_LEFT =
-        MotorConfig.builder().canId(2).idleMode(IdleMode.kBrake).pidConfig(PID_DEFAULTS).build();
+        MotorConfig.builder()
+            .canId(8)
+            .inverted(true)
+            .idleMode(IdleMode.kBrake)
+            .pidConfig(PID_DEFAULTS)
+            .positionConversionFactor(ENCODER_POSITION_CONVERSION)
+            .build();
     public static final MotorConfig REAR_RIGHT =
         MotorConfig.builder()
-            .canId(3)
+            .canId(9)
             .idleMode(IdleMode.kBrake)
             .inverted(true)
             .pidConfig(PID_DEFAULTS)
+            .positionConversionFactor(ENCODER_POSITION_CONVERSION)
             .build();
 
     public static final int PIGEON_MOTOR_PORT = 1;

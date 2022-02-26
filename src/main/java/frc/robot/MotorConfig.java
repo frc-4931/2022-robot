@@ -17,6 +17,7 @@ public class MotorConfig {
   @Builder.Default private double openLoopRampRate = 0;
   @Builder.Default private IdleMode idleMode = IdleMode.kBrake;
   @Builder.Default private boolean inverted = false;
+  @Builder.Default private double positionConversionFactor = 1;
   @Singular private List<PIDConfig> pidConfigs;
 
   public CANSparkMax createMotor() {
@@ -26,6 +27,8 @@ public class MotorConfig {
     motor.setIdleMode(getIdleMode());
     motor.setInverted(isInverted());
     motor.setOpenLoopRampRate(getOpenLoopRampRate());
+    motor.getEncoder().setPositionConversionFactor(getPositionConversionFactor());
+    motor.getEncoder().setVelocityConversionFactor(getPositionConversionFactor() / 60);
 
     SparkMaxPIDController pidController = motor.getPIDController();
     for (int i = 0; i < getPidConfigs().size(); i++) {
@@ -42,6 +45,7 @@ public class MotorConfig {
       pidController.setSmartMotionMinOutputVelocity(pidConfig.getMinOutputVelocity(), i);
     }
 
+    motor.burnFlash();
     return motor;
   }
 

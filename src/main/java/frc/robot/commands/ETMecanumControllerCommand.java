@@ -14,14 +14,21 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+/**
+ * Edwardsville Technologies version of the <code>MecanumControllerCommand</code>. This version is
+ * built to use the holonomic trajectory information available from the PathPlannerTrajectory
+ * library. It also assumes that smart motor controllers are being used for the drivetrain to handle
+ * PID controls.
+ */
 public class ETMecanumControllerCommand extends CommandBase {
   private final Timer timer = new Timer();
-  private final PathPlannerTrajectory trajectory;
+  private final Supplier<PathPlannerTrajectory> trajectorySupplier;
   private final Supplier<Pose2d> pose;
   private final MecanumDriveKinematics kinematics;
   private final HolonomicDriveController controller;
   private final double maxWheelVelocityMetersPerSecond;
   private final Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds;
+  private PathPlannerTrajectory trajectory;
 
   public ETMecanumControllerCommand(
       PathPlannerTrajectory trajectory,
@@ -33,8 +40,30 @@ public class ETMecanumControllerCommand extends CommandBase {
       double maxWheelVelocityMetersPerSecond,
       Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds,
       Subsystem... requirements) {
+    this(
+        () -> trajectory,
+        pose,
+        kinematics,
+        xController,
+        yController,
+        thetaController,
+        maxWheelVelocityMetersPerSecond,
+        outputWheelSpeeds,
+        requirements);
+  }
 
-    this.trajectory = trajectory;
+  public ETMecanumControllerCommand(
+      Supplier<PathPlannerTrajectory> trajectory,
+      Supplier<Pose2d> pose,
+      MecanumDriveKinematics kinematics,
+      PIDController xController,
+      PIDController yController,
+      ProfiledPIDController thetaController,
+      double maxWheelVelocityMetersPerSecond,
+      Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds,
+      Subsystem... requirements) {
+
+    this.trajectorySupplier = trajectory;
     this.pose = pose;
     this.kinematics = kinematics;
     this.maxWheelVelocityMetersPerSecond = maxWheelVelocityMetersPerSecond;
@@ -46,6 +75,7 @@ public class ETMecanumControllerCommand extends CommandBase {
 
   @Override
   public void initialize() {
+    trajectory = trajectorySupplier.get();
     timer.reset();
     timer.start();
   }
@@ -66,6 +96,8 @@ public class ETMecanumControllerCommand extends CommandBase {
     var rearLeftSpeedSetpoint = targetWheelSpeeds.rearLeftMetersPerSecond;
     var frontRightSpeedSetpoint = targetWheelSpeeds.frontRightMetersPerSecond;
     var rearRightSpeedSetpoint = targetWheelSpeeds.rearRightMetersPerSecond;
+
+    // TODO: maybe log entries?
 
     outputWheelSpeeds.accept(
         new MecanumDriveWheelSpeeds(

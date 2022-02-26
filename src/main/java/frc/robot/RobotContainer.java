@@ -6,15 +6,19 @@ package frc.robot;
 
 import com.pathplanner.lib.PathPlanner;
 import com.pathplanner.lib.PathPlannerTrajectory;
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.ScheduleCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
@@ -25,6 +29,7 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -34,9 +39,14 @@ import java.util.stream.Collectors;
  * subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
+  private static final String AUTONOMOUS_WAIT = "AutonomousWait";
   private final Field2d field2d;
   private final Drivetrain drivetrain;
-  private XboxController driver1Controller = new XboxController(OIConstants.XBOX_PORT);
+  private XboxController driver1XBox;
+  private Joystick driver1Joystick;
+  private Supplier<Double> yAxisSupplier;
+  private Supplier<Double> xAxisSupplier;
+  private Supplier<Double> zAxisSupplier;
 
   private SendableChooser<AutonomousRoute> routeChooser = new SendableChooser<>();
   private Map<AutonomousRoute, PathPlannerTrajectory> trajectories;
@@ -50,18 +60,37 @@ public class RobotContainer {
     // Configure the button bindings
     configureButtonBindings();
 
+    configureDriver1Controls();
+
     configureDrivetrainDefault();
     configureAutoChoices();
     loadPaths();
+
+    CameraServer.startAutomaticCapture("FrontCamera", OIConstants.FRONT_CAMERA);
+  }
+
+  private void configureDriver1Controls() {
+    if (OIConstants.USE_XBOX) {
+      driver1XBox = new XboxController(OIConstants.DRIVER_1);
+      yAxisSupplier = () -> -driver1XBox.getLeftY();
+      xAxisSupplier = () -> driver1XBox.getLeftX();
+      zAxisSupplier = () -> driver1XBox.getRightX();
+    } else {
+      driver1Joystick = new Joystick(OIConstants.DRIVER_1);
+      yAxisSupplier = () -> -driver1Joystick.getY();
+      xAxisSupplier = () -> driver1Joystick.getX();
+      zAxisSupplier = () -> driver1Joystick.getZ();
+    }
   }
 
   private void configureDrivetrainDefault() {
-    double forward = driver1Controller.getLeftY();
-    double strafe = driver1Controller.getLeftX();
-    double rotation = driver1Controller.getRightX();
-
     Command fieldOriented =
-        new RunCommand(() -> drivetrain.driveCartesian(strafe, forward, rotation), drivetrain);
+        new RunCommand(
+            () ->
+                drivetrain.driveCartesian(
+                    xAxisSupplier.get(), yAxisSupplier.get(), zAxisSupplier.get()),
+            drivetrain);
+
     drivetrain.setDefaultCommand(fieldOriented);
   }
 
@@ -108,9 +137,14 @@ public class RobotContainer {
     // .setKinematics(DriveConstants.DRIVE_KINEMATICS);
 
     // use the selected trajectory
-    PathPlannerTrajectory trajectory = trajectories.get(routeChooser.getSelected());
-    field2d.getObject("traj").setTrajectory(trajectory);
-
+    Supplier<PathPlannerTrajectory> trajectory =
+        () -> {
+          var traj = trajectories.get(routeChooser.getSelected());
+          field2d.getObject("traj").setTrajectory(traj);
+          // Reset odometry to the starting pose of the trajectory.
+          drivetrain.setInitialPose(traj.getInitialPose());
+          return traj;
+        };
     ETMecanumControllerCommand mecanumControllerCommand =
         new ETMecanumControllerCommand(
             trajectory,
@@ -157,17 +191,23 @@ public class RobotContainer {
      * drivetrain::setDriveSpeeds, // Consumer for the output speeds
      * drivetrain);
      */
-    // Reset odometry to the starting pose of the trajectory.
-    drivetrain.setInitialPose(trajectory.getInitialPose());
 
     // get the initial pause
-    double autoWait = SmartDashboard.getNumber("AutonomousWait", 0.0);
 
     // Run path following command, then stop at the end.
     Command drive = mecanumControllerCommand.andThen(() -> drivetrain.drivePolar(0, 0, 0));
-    if (autoWait > 0) {
-      return new WaitCommand(autoWait).andThen(drive);
-    }
-    return drive;
+
+    Command runIntake = new InstantCommand(() -> {});
+
+    Command autonomousJobs = drive.alongWith(runIntake);
+
+    Command autonomousCommand =
+        new InstantCommand(
+            () -> {
+              double autoWait = SmartDashboard.getNumber(AUTONOMOUS_WAIT, 0.0);
+              new ScheduleCommand(new WaitCommand(autoWait).andThen(autonomousJobs));
+            });
+
+    return autonomousCommand;
   }
 }

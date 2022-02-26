@@ -65,6 +65,11 @@ public class Drivetrain extends SubsystemBase {
     // Update the pose
     pose = mecanumDriveOdometry.update(gyroAngle, wheelSpeeds);
     field2d.setRobotPose(mecanumDriveOdometry.getPoseMeters());
+
+    SmartDashboard.putNumber("LeftFrontVelocity", wheelSpeeds.frontLeftMetersPerSecond);
+    SmartDashboard.putNumber("RightFrontVelocity", wheelSpeeds.frontRightMetersPerSecond);
+    SmartDashboard.putNumber("LeftRearVelocity", wheelSpeeds.rearLeftMetersPerSecond);
+    SmartDashboard.putNumber("RightRearVelocity", wheelSpeeds.rearRightMetersPerSecond);
   }
 
   @Override
@@ -82,6 +87,8 @@ public class Drivetrain extends SubsystemBase {
   }
 
   public void driveCartesianFieldOriented(double ySpeed, double xSpeed, double zRotation) {
+    System.out.printf(
+        "drive y: %d x: %d z: %d heading: %d", ySpeed, xSpeed, zRotation, getCompassHeading());
     mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, getCompassHeading());
   }
 
