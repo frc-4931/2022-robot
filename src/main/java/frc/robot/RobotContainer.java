@@ -6,7 +6,6 @@ package frc.robot;
 
 import com.pathplanner.lib.PathPlanner;
 import com.pathplanner.lib.PathPlannerTrajectory;
-import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.GenericHID;
@@ -66,7 +65,9 @@ public class RobotContainer {
     configureAutoChoices();
     loadPaths();
 
-    CameraServer.startAutomaticCapture("FrontCamera", OIConstants.FRONT_CAMERA);
+    // CameraServer.startAutomaticCapture("FrontCamera", OIConstants.FRONT_CAMERA);
+    // PhotonCamera camera = new PhotonCamera(OIConstants.FRONT_CAMERA_NAME);
+    // camera.getLatestResult().getBestTarget().
   }
 
   private void configureDriver1Controls() {
@@ -77,9 +78,12 @@ public class RobotContainer {
       zAxisSupplier = () -> driver1XBox.getRightX();
     } else {
       driver1Joystick = new Joystick(OIConstants.DRIVER_1);
+      System.out.printf("joystick axis z: %d%n", driver1Joystick.getZChannel());
+      System.out.printf("joystick axis twist: %d%n", driver1Joystick.getTwistChannel());
+
       yAxisSupplier = () -> -driver1Joystick.getY();
       xAxisSupplier = () -> driver1Joystick.getX();
-      zAxisSupplier = () -> driver1Joystick.getZ();
+      zAxisSupplier = () -> driver1Joystick.getTwist();
     }
   }
 
@@ -87,8 +91,8 @@ public class RobotContainer {
     Command fieldOriented =
         new RunCommand(
             () ->
-                drivetrain.driveCartesian(
-                    xAxisSupplier.get(), yAxisSupplier.get(), zAxisSupplier.get()),
+                drivetrain.driveCartesianFieldOriented(
+                    yAxisSupplier.get(), xAxisSupplier.get(), zAxisSupplier.get()),
             drivetrain);
 
     drivetrain.setDefaultCommand(fieldOriented);

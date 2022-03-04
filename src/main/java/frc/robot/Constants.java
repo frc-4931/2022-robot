@@ -21,11 +21,12 @@ import frc.robot.MotorConfig.PIDConfig;
  */
 public final class Constants {
   public static final class OIConstants {
-    public static final boolean USE_XBOX = true;
+    public static final boolean USE_XBOX = false;
     public static final int DRIVER_1 = 0;
     public static final int DRIVER_2 = 1;
 
     public static final int FRONT_CAMERA = 0;
+    public static final String FRONT_CAMERA_NAME = "front-camera";
   }
 
   /** Constants related to the Autonomous mode. */
@@ -47,7 +48,7 @@ public final class Constants {
 
   public static final class DriveConstants {
     private static final double WHEEL_DIAMETER_M = Units.inchesToMeters(8);
-    private static final double DRIVE_GEAR_RATIO = (14d / 70d) * (66d / 30d);
+    private static final double DRIVE_GEAR_RATIO = (70d / 14d) * (66d / 30d);
     private static final double ENCODER_POSITION_CONVERSION =
         Math.PI * WHEEL_DIAMETER_M / DRIVE_GEAR_RATIO;
     // TODO: Find actual values for these!
@@ -73,6 +74,7 @@ public final class Constants {
     public static final MotorConfig FRONT_RIGHT =
         MotorConfig.builder()
             .canId(5)
+            .inverted(true)
             .idleMode(IdleMode.kBrake)
             .pidConfig(PID_DEFAULTS)
             .positionConversionFactor(ENCODER_POSITION_CONVERSION)
@@ -80,7 +82,7 @@ public final class Constants {
     public static final MotorConfig REAR_LEFT =
         MotorConfig.builder()
             .canId(8)
-            .inverted(true)
+            // .inverted(true)
             .idleMode(IdleMode.kBrake)
             .pidConfig(PID_DEFAULTS)
             .positionConversionFactor(ENCODER_POSITION_CONVERSION)
@@ -94,7 +96,7 @@ public final class Constants {
             .positionConversionFactor(ENCODER_POSITION_CONVERSION)
             .build();
 
-    public static final int PIGEON_MOTOR_PORT = 1;
+    public static final int PIGEON_MOTOR_PORT = 2;
 
     // Distance between centers of right and left wheels on robot
     public static final double kTrackWidth = Units.inchesToMeters(22.09);

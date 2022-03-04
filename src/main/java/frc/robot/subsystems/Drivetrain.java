@@ -4,6 +4,7 @@ import static frc.robot.Constants.DriveConstants.*;
 
 import com.ctre.phoenix.sensors.PigeonIMU.CalibrationMode;
 import com.ctre.phoenix.sensors.PigeonIMU.GeneralStatus;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.ControlType;
@@ -37,10 +38,11 @@ public class Drivetrain extends SubsystemBase {
     motorBackLeft = REAR_LEFT.createMotor();
     motorBackRight = REAR_RIGHT.createMotor();
 
-    mecanumDrive = new MecanumDrive(motorFrontLeft, motorFrontRight, motorBackLeft, motorBackRight);
-    // mecanumDrive.setDeadband(0.05);
+    mecanumDrive = new MecanumDrive(motorFrontLeft, motorBackLeft, motorFrontRight, motorBackRight);
+    mecanumDrive.setDeadband(0.06);
+    mecanumDrive.setMaxOutput(0.4);
 
-    pigeon = new WPI_PigeonIMU(PIGEON_MOTOR_PORT);
+    pigeon = new WPI_PigeonIMU(new WPI_TalonSRX(PIGEON_MOTOR_PORT));
     // pigeon.configTemperatureDompensationEnable(true, 0);
 
     mecanumDriveOdometry = new MecanumDriveOdometry(DRIVE_KINEMATICS, pigeon.getRotation2d());
@@ -70,6 +72,9 @@ public class Drivetrain extends SubsystemBase {
     SmartDashboard.putNumber("RightFrontVelocity", wheelSpeeds.frontRightMetersPerSecond);
     SmartDashboard.putNumber("LeftRearVelocity", wheelSpeeds.rearLeftMetersPerSecond);
     SmartDashboard.putNumber("RightRearVelocity", wheelSpeeds.rearRightMetersPerSecond);
+    SmartDashboard.putData("pig", pigeon);
+
+    log();
   }
 
   @Override
@@ -87,8 +92,12 @@ public class Drivetrain extends SubsystemBase {
   }
 
   public void driveCartesianFieldOriented(double ySpeed, double xSpeed, double zRotation) {
-    System.out.printf(
-        "drive y: %d x: %d z: %d heading: %d", ySpeed, xSpeed, zRotation, getCompassHeading());
+    SmartDashboard.putNumber("ySpeed", ySpeed);
+    SmartDashboard.putNumber("xSpeed", xSpeed);
+    SmartDashboard.putNumber("zRotation", zRotation);
+    SmartDashboard.putNumber("compassHeading", getCompassHeading());
+    // System.out.printf(
+    //     "drive y: %d x: %d z: %d heading: %d", ySpeed, xSpeed, zRotation, getCompassHeading());
     mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, getCompassHeading());
   }
 
