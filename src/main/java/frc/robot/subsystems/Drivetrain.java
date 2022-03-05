@@ -79,6 +79,7 @@ public class Drivetrain extends SubsystemBase {
     SmartDashboard.putNumber("LeftRearVelocity", wheelSpeeds.rearLeftMetersPerSecond);
     SmartDashboard.putNumber("RightRearVelocity", wheelSpeeds.rearRightMetersPerSecond);
     SmartDashboard.putData("pig", pigeon);
+    SmartDashboard.putBoolean("robotOriented", robotOriented);
 
     log();
   }
