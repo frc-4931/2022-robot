@@ -77,9 +77,10 @@ public class RobotContainer {
       yAxisSupplier = () -> -driver1XBox.getLeftY();
       xAxisSupplier = () -> driver1XBox.getLeftX();
       zAxisSupplier = () -> driver1XBox.getRightX();
+      new JoystickButton(driver1XBox, XboxController.Button.kRightBumper.value)
+          .whenPressed(() -> drivetrain.toggleRobotOriented());
       new JoystickButton(driver1XBox, XboxController.Button.kStart.value)
           .whenPressed(() -> drivetrain.zero());
-
     } else {
       driver1Joystick = new Joystick(OIConstants.DRIVER_1);
       yAxisSupplier = () -> -driver1Joystick.getY();
