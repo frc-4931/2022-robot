@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.ScheduleCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.OIConstants;
@@ -76,6 +77,8 @@ public class RobotContainer {
       yAxisSupplier = () -> -driver1XBox.getLeftY();
       xAxisSupplier = () -> driver1XBox.getLeftX();
       zAxisSupplier = () -> driver1XBox.getRightX();
+      new JoystickButton(driver1XBox, XboxController.Button.kRightBumper.value)
+          .whenPressed(() -> drivetrain.toggleRobotOriented());
     } else {
       driver1Joystick = new Joystick(OIConstants.DRIVER_1);
       yAxisSupplier = () -> -driver1Joystick.getY();
