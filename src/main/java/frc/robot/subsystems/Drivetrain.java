@@ -160,7 +160,7 @@ public class Drivetrain extends SubsystemBase {
   }
 
   public double getAngleContinuous() {
-    return pigeon.getFusedHeading();
+    return -pigeon.getFusedHeading();
   }
 
   public double getAbsoluteCompassHeading() {
