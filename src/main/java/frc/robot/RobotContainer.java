@@ -78,9 +78,6 @@ public class RobotContainer {
       zAxisSupplier = () -> driver1XBox.getRightX();
     } else {
       driver1Joystick = new Joystick(OIConstants.DRIVER_1);
-      System.out.printf("joystick axis z: %d%n", driver1Joystick.getZChannel());
-      System.out.printf("joystick axis twist: %d%n", driver1Joystick.getTwistChannel());
-
       yAxisSupplier = () -> -driver1Joystick.getY();
       xAxisSupplier = () -> driver1Joystick.getX();
       zAxisSupplier = () -> driver1Joystick.getTwist();

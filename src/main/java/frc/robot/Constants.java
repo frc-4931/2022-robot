@@ -47,6 +47,7 @@ public final class Constants {
   }
 
   public static final class DriveConstants {
+    private static final double OPEN_RAMP_RATE = 3;
     private static final double WHEEL_DIAMETER_M = Units.inchesToMeters(8);
     private static final double DRIVE_GEAR_RATIO = (70d / 14d) * (66d / 30d);
     private static final double ENCODER_POSITION_CONVERSION =
@@ -70,6 +71,7 @@ public final class Constants {
             .idleMode(IdleMode.kBrake)
             .pidConfig(PID_DEFAULTS)
             .positionConversionFactor(ENCODER_POSITION_CONVERSION)
+            .openLoopRampRate(OPEN_RAMP_RATE)
             .build();
     public static final MotorConfig FRONT_RIGHT =
         MotorConfig.builder()
@@ -78,14 +80,15 @@ public final class Constants {
             .idleMode(IdleMode.kBrake)
             .pidConfig(PID_DEFAULTS)
             .positionConversionFactor(ENCODER_POSITION_CONVERSION)
+            .openLoopRampRate(OPEN_RAMP_RATE)
             .build();
     public static final MotorConfig REAR_LEFT =
         MotorConfig.builder()
             .canId(8)
-            // .inverted(true)
             .idleMode(IdleMode.kBrake)
             .pidConfig(PID_DEFAULTS)
             .positionConversionFactor(ENCODER_POSITION_CONVERSION)
+            .openLoopRampRate(OPEN_RAMP_RATE)
             .build();
     public static final MotorConfig REAR_RIGHT =
         MotorConfig.builder()
@@ -94,6 +97,7 @@ public final class Constants {
             .inverted(true)
             .pidConfig(PID_DEFAULTS)
             .positionConversionFactor(ENCODER_POSITION_CONVERSION)
+            .openLoopRampRate(OPEN_RAMP_RATE)
             .build();
 
     public static final int PIGEON_MOTOR_PORT = 2;

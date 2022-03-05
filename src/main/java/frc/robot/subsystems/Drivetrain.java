@@ -2,9 +2,9 @@ package frc.robot.subsystems;
 
 import static frc.robot.Constants.DriveConstants.*;
 
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.sensors.PigeonIMU.CalibrationMode;
 import com.ctre.phoenix.sensors.PigeonIMU.GeneralStatus;
-import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.ControlType;
@@ -40,9 +40,13 @@ public class Drivetrain extends SubsystemBase {
 
     mecanumDrive = new MecanumDrive(motorFrontLeft, motorBackLeft, motorFrontRight, motorBackRight);
     mecanumDrive.setDeadband(0.06);
-    mecanumDrive.setMaxOutput(0.4);
+    // mecanumDrive.setMaxOutput(0.4);
 
     pigeon = new WPI_PigeonIMU(new WPI_TalonSRX(PIGEON_MOTOR_PORT));
+    pigeon.configFactoryDefault();
+    pigeon.setYaw(0);
+    pigeon.setAccumZAngle(0);
+    zero();
     // pigeon.configTemperatureDompensationEnable(true, 0);
 
     mecanumDriveOdometry = new MecanumDriveOdometry(DRIVE_KINEMATICS, pigeon.getRotation2d());
@@ -95,10 +99,10 @@ public class Drivetrain extends SubsystemBase {
     SmartDashboard.putNumber("ySpeed", ySpeed);
     SmartDashboard.putNumber("xSpeed", xSpeed);
     SmartDashboard.putNumber("zRotation", zRotation);
-    SmartDashboard.putNumber("compassHeading", getCompassHeading());
+    SmartDashboard.putNumber("compassHeading", getAngleContinuous());
     // System.out.printf(
     //     "drive y: %d x: %d z: %d heading: %d", ySpeed, xSpeed, zRotation, getCompassHeading());
-    mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, getCompassHeading());
+    mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, getAngleContinuous());
   }
 
   public void drivePolar(double magnitude, double angle, double zRotation) {
@@ -150,13 +154,13 @@ public class Drivetrain extends SubsystemBase {
   }
 
   public double getAngle() {
-    double angle = -pigeon.getFusedHeading() % 360;
+    double angle = pigeon.getFusedHeading() % 360;
     double out = (angle < -180) ? angle + 360 : angle;
     return (out > 180) ? out - 360 : out;
   }
 
   public double getAngleContinuous() {
-    return -pigeon.getFusedHeading();
+    return pigeon.getFusedHeading();
   }
 
   public double getAbsoluteCompassHeading() {
