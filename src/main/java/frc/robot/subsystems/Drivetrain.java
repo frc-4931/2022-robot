@@ -30,6 +30,8 @@ public class Drivetrain extends SubsystemBase {
   private MecanumDriveOdometry mecanumDriveOdometry;
   private Field2d field2d;
 
+  private boolean robotOriented = true;
+
   public Drivetrain(Field2d field2d) {
     this.field2d = field2d;
 
@@ -91,6 +93,10 @@ public class Drivetrain extends SubsystemBase {
     return pose;
   }
 
+  public void toggleRobotOriented() {
+    robotOriented = !robotOriented;
+  }
+
   public void driveCartesian(double ySpeed, double xSpeed, double zRotation) {
     mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation);
   }
@@ -100,9 +106,13 @@ public class Drivetrain extends SubsystemBase {
     SmartDashboard.putNumber("xSpeed", xSpeed);
     SmartDashboard.putNumber("zRotation", zRotation);
     SmartDashboard.putNumber("compassHeading", getAngleContinuous());
-    // System.out.printf(
-    //     "drive y: %d x: %d z: %d heading: %d", ySpeed, xSpeed, zRotation, getCompassHeading());
-    mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, getAngleContinuous());
+    if (robotOriented == true) {
+      mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation);
+    } else {
+      // System.out.printf(
+      //     "drive y: %d x: %d z: %d heading: %d", ySpeed, xSpeed, zRotation, getCompassHeading());
+      mecanumDrive.driveCartesian(ySpeed, xSpeed, zRotation, getAngleContinuous());
+    }
   }
 
   public void drivePolar(double magnitude, double angle, double zRotation) {
