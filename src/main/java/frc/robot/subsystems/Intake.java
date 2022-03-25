@@ -19,33 +19,36 @@ public class Intake extends SubsystemBase {
 
   public Intake() {
     intakeMotor = INTAKE_MOTOR.createMotor();
-  }
-
-  @Override
-  public void periodic() {
     SmartDashboard.putBoolean("Intake", spinning);
   }
 
-  private void setSpeed(int rpm) {
-    intakeMotor.getPIDController().setReference(rpm, ControlType.kSmartVelocity);
+  // @Override
+  // public void periodic() {
+
+  // }
+
+  private void setSpeed() {
+    if (spinning) {
+      intakeMotor.getPIDController().setReference(SPEED, ControlType.kVelocity);
+    } else {
+      intakeMotor.set(0);
+    }
+
+    SmartDashboard.putBoolean("Intake", spinning);
   }
 
   public void on() {
     spinning = true;
-    setSpeed(SPEED);
+    setSpeed();
   }
 
   public void off() {
     spinning = false;
-    setSpeed(0);
+    setSpeed();
   }
 
   public void toggle() {
     spinning = !spinning;
-    if (spinning) {
-      on();
-    } else {
-      off();
-    }
+    setSpeed();
   }
 }

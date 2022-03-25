@@ -6,9 +6,11 @@ package frc.robot;
 
 import com.pathplanner.lib.PathPlanner;
 import com.pathplanner.lib.PathPlannerTrajectory;
+import com.pathplanner.lib.commands.PPMecanumControllerCommand;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -16,20 +18,23 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
-import edu.wpi.first.wpilibj2.command.ScheduleCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import frc.robot.Constants.AutoConstants;
-import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.OIConstants;
-import frc.robot.commands.ETMecanumControllerCommand;
+import frc.robot.Constants.PoseConstants;
+import frc.robot.commands.DriveCommand;
 import frc.robot.subsystems.Drivetrain;
+import frc.robot.subsystems.Elevator;
+import frc.robot.subsystems.IMU;
+import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Vision;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -42,11 +47,14 @@ public class RobotContainer {
   private static final String AUTONOMOUS_WAIT = "AutonomousWait";
   private final Field2d field2d;
   private final Drivetrain drivetrain;
-  private XboxController driver1XBox;
-  private Joystick driver1Joystick;
-  private Supplier<Double> yAxisSupplier;
-  private Supplier<Double> xAxisSupplier;
-  private Supplier<Double> zAxisSupplier;
+  private final Elevator elevator;
+  private final Intake intake;
+  private final Shooter shooter;
+  // private XboxController driver1XBox;
+  // private Joystick driver1Joystick;
+  private IMU imu;
+  private Vision vision;
+  private Pose2dHandler pose2dHandler;
 
   private SendableChooser<AutonomousRoute> routeChooser = new SendableChooser<>();
   private Map<AutonomousRoute, PathPlannerTrajectory> trajectories;
@@ -55,14 +63,19 @@ public class RobotContainer {
   public RobotContainer() {
     field2d = new Field2d();
     SmartDashboard.putData("Field", field2d);
-    drivetrain = new Drivetrain(field2d);
+    imu = new IMU();
+    vision = new Vision();
+    pose2dHandler = new Pose2dHandler(imu, vision);
+    drivetrain = new Drivetrain(pose2dHandler);
+    elevator = new Elevator();
+    intake = new Intake();
+    shooter = new Shooter();
 
     // Configure the button bindings
-    configureButtonBindings();
+    // configureButtonBindings();
 
     configureDriver1Controls();
-
-    configureDrivetrainDefault();
+    configureDriver2Controls();
     configureAutoChoices();
     loadPaths();
 
@@ -71,39 +84,84 @@ public class RobotContainer {
     // camera.getLatestResult().getBestTarget().
   }
 
+  Runnable getVisionPeriodic() {
+    return vision::periodic;
+  }
+
+  Runnable getDrivetrainPeriodic() {
+    return drivetrain::periodicDrivetrain;
+  }
+
   private void configureDriver1Controls() {
     if (OIConstants.USE_XBOX) {
-      driver1XBox = new XboxController(OIConstants.DRIVER_1);
-      yAxisSupplier = () -> -driver1XBox.getLeftY();
-      xAxisSupplier = () -> driver1XBox.getLeftX();
-      zAxisSupplier = () -> driver1XBox.getRightX();
-      new JoystickButton(driver1XBox, XboxController.Button.kRightBumper.value)
-          .whenPressed(() -> drivetrain.toggleRobotOriented());
-      new JoystickButton(driver1XBox, XboxController.Button.kStart.value)
-          .whenPressed(() -> drivetrain.zero());
+      XboxController driver1XBox = new XboxController(OIConstants.DRIVER_1);
+      BiConsumer<Double, Double> rumbler =
+          (left, right) -> {
+            driver1XBox.setRumble(RumbleType.kLeftRumble, left);
+            driver1XBox.setRumble(RumbleType.kRightRumble, right);
+          };
+      DriveCommand driveCommand =
+          new DriveCommand(
+              drivetrain,
+              () -> -driver1XBox.getLeftY(),
+              driver1XBox::getLeftX,
+              driver1XBox::getRightX,
+              vision,
+              imu,
+              rumbler);
+      setDrivetrainDefault(driveCommand);
+      createButton(driver1XBox, XboxController.Button.kRightBumper)
+          .whenPressed(driveCommand::toggleFieldOriented);
+      createButton(driver1XBox, XboxController.Button.kLeftBumper)
+          .whenPressed(driveCommand::toggleDriveDirection);
+      createButton(driver1XBox, XboxController.Button.kStart).whenPressed(imu::reset);
+      createButton(driver1XBox, XboxController.Button.kA).whenPressed(intake::toggle);
+      createButton(driver1XBox, XboxController.Button.kB).whenPressed(elevator::toggle);
+
     } else {
-      driver1Joystick = new Joystick(OIConstants.DRIVER_1);
-      yAxisSupplier = () -> -driver1Joystick.getY();
-      xAxisSupplier = () -> driver1Joystick.getX();
-      zAxisSupplier = () -> driver1Joystick.getTwist();
+      Joystick driver1Joystick = new Joystick(OIConstants.DRIVER_1);
+      DriveCommand driveCommand =
+          new DriveCommand(
+              drivetrain,
+              () -> -driver1Joystick.getY(),
+              () -> driver1Joystick.getX(),
+              () -> driver1Joystick.getTwist(),
+              vision,
+              imu);
+      setDrivetrainDefault(driveCommand);
     }
   }
 
-  private void configureDrivetrainDefault() {
-    Command fieldOriented =
-        new RunCommand(
-            () ->
-                drivetrain.driveCartesianFieldOriented(
-                    yAxisSupplier.get(), xAxisSupplier.get(), zAxisSupplier.get()),
-            drivetrain);
+  private void configureDriver2Controls() {
+    Joystick joystick = new Joystick(OIConstants.DRIVER_2);
+    createButton(joystick, 7).whenPressed(vision::toggleLED);
+    createButton(joystick, 9).whenPressed(vision::takePicture);
+    createButton(joystick, 8).whenPressed(() -> vision.setPipeline(0));
+    createButton(joystick, 10).whenPressed(() -> vision.setPipeline(1));
 
-    drivetrain.setDefaultCommand(fieldOriented);
+    createButton(joystick, 11).whenPressed(shooter::on);
+    createButton(joystick, 12).whenPressed(shooter::off);
+  }
+
+  private JoystickButton createButton(GenericHID joystick, int buttonNumber) {
+    return new JoystickButton(joystick, buttonNumber);
+  }
+
+  private JoystickButton createButton(XboxController controller, XboxController.Button button) {
+    return createButton(controller, button.value);
+  }
+
+  private void setDrivetrainDefault(Command command) {
+    drivetrain.setDefaultCommand(command);
   }
 
   private void configureAutoChoices() {
     for (AutonomousRoute route : AutonomousRoute.values()) {
       routeChooser.addOption(route.name(), route);
     }
+    SmartDashboard.putData("AutonomousChoice", routeChooser);
+
+    SmartDashboard.putNumber(AUTONOMOUS_WAIT, 0);
   }
 
   private void loadPaths() {
@@ -136,26 +194,18 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // Create config for trajectory
-    // TrajectoryConfig config = new TrajectoryConfig(
-    // AutoConstants.MAX_SPEED_METERS_PER_SECOND,
-    // AutoConstants.MAX_ACCELERATION_METERS_PER_SECOND_SQUARED)
-    // // Add kinematics to ensure max speed is actually obeyed
-    // .setKinematics(DriveConstants.DRIVE_KINEMATICS);
+    var trajectory = trajectories.get(routeChooser.getSelected());
+    trajectories = null;
+    field2d.getObject("trajectory").setTrajectory(trajectory);
+    // Reset odometry to the starting pose of the trajectory.
+    pose2dHandler.resetToPose(trajectory.getInitialPose());
 
     // use the selected trajectory
-    Supplier<PathPlannerTrajectory> trajectory =
-        () -> {
-          var traj = trajectories.get(routeChooser.getSelected());
-          field2d.getObject("traj").setTrajectory(traj);
-          // Reset odometry to the starting pose of the trajectory.
-          drivetrain.setInitialPose(traj.getInitialPose());
-          return traj;
-        };
-    ETMecanumControllerCommand mecanumControllerCommand =
-        new ETMecanumControllerCommand(
+    PPMecanumControllerCommand mecanumControllerCommand =
+        new PPMecanumControllerCommand(
             trajectory,
-            drivetrain::getPose,
-            DriveConstants.DRIVE_KINEMATICS,
+            pose2dHandler::getPoseEst,
+            PoseConstants.DRIVE_KINEMATICS,
 
             // Position contollers
             new PIDController(AutoConstants.kPXController, 0, 0),
@@ -166,53 +216,18 @@ public class RobotContainer {
             drivetrain::setDriveSpeeds,
             drivetrain);
 
-    /*
-     * use mine since it controls rotation as well.
-     * MecanumControllerCommand mecanumControllerCommand =
-     * new MecanumControllerCommand(
-     * trajectory,
-     * drivetrain::getPose,
-     * // DriveConstants.kFeedforward,
-     * DriveConstants.DRIVE_KINEMATICS,
-     *
-     * // Position contollers
-     * new PIDController(AutoConstants.kPXController, 0, 0),
-     * new PIDController(AutoConstants.kPYController, 0, 0),
-     * new ProfiledPIDController(
-     * AutoConstants.kPThetaController, 0, 0,
-     * AutoConstants.kThetaControllerConstraints),
-     *
-     * // TODO: desired rotation??? - should come from trajectory
-     *
-     * // Needed for normalizing wheel speeds
-     * AutoConstants.MAX_SPEED_METERS_PER_SECOND,
-     *
-     * // Velocity PID's
-     * // new PIDController(DriveConstants.kPFrontLeftVel, 0, 0),
-     * // new PIDController(DriveConstants.kPRearLeftVel, 0, 0),
-     * // new PIDController(DriveConstants.kPFrontRightVel, 0, 0),
-     * // new PIDController(DriveConstants.kPRearRightVel, 0, 0),
-     * // drivetrain::getCurrentWheelSpeeds,
-     *
-     * drivetrain::setDriveSpeeds, // Consumer for the output speeds
-     * drivetrain);
-     */
+    // Run path following command, then stop at the end.
+    // Command drive = mecanumControllerCommand.andThen(() -> drivetrain.drivePolar(0, 0, 0));
+
+    Command prepIntake = new InstantCommand(() -> {});
+    Command prepShooter = new InstantCommand(() -> {});
+
+    Command autonomousJobs = mecanumControllerCommand.alongWith(prepIntake, prepShooter);
 
     // get the initial pause
-
-    // Run path following command, then stop at the end.
-    Command drive = mecanumControllerCommand.andThen(() -> drivetrain.drivePolar(0, 0, 0));
-
-    Command runIntake = new InstantCommand(() -> {});
-
-    Command autonomousJobs = drive.alongWith(runIntake);
-
+    double autoWait = SmartDashboard.getNumber(AUTONOMOUS_WAIT, 0.0);
     Command autonomousCommand =
-        new InstantCommand(
-            () -> {
-              double autoWait = SmartDashboard.getNumber(AUTONOMOUS_WAIT, 0.0);
-              new ScheduleCommand(new WaitCommand(autoWait).andThen(autonomousJobs));
-            });
+        autoWait > 0 ? new WaitCommand(autoWait).andThen(autonomousJobs) : autonomousJobs;
 
     return autonomousCommand;
   }

@@ -5,6 +5,9 @@
 package frc.robot;
 
 import com.revrobotics.CANSparkMax.IdleMode;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
@@ -21,12 +24,19 @@ import frc.robot.MotorConfig.PIDConfig;
  */
 public final class Constants {
   public static final class OIConstants {
-    public static final boolean USE_XBOX = false;
+    public static final boolean USE_XBOX = true;
     public static final int DRIVER_1 = 0;
     public static final int DRIVER_2 = 1;
 
     public static final int FRONT_CAMERA = 0;
     public static final String FRONT_CAMERA_NAME = "front-camera";
+
+    public static final int NOTIFY_RATE =
+        50; // rumble drive feedback once every <rate> times through the loop;
+    public static final double RUMBLE_LEFT_LOCKED = .5;
+    public static final double RUMBLE_RIGHT_LOCKED = 0d;
+    public static final double RUMBLE_LEFT_NO_TARGET = .9;
+    public static final double RUMBLE_RIGHT_NO_TARGET = .9;
   }
 
   /** Constants related to the Autonomous mode. */
@@ -55,14 +65,15 @@ public final class Constants {
     // TODO: Find actual values for these!
     private static final PIDConfig PID_DEFAULTS =
         PIDConfig.builder()
-            .kP(0.8)
-            .kI(0)
+            .kP(5e-5)
+            .kI(1e-6)
             .kD(0)
-            .kFF(5)
-            // .maxAcceleration(maxAcceleration)
-            // .maxVelocity(maxVelocity)
-            // .outputRangeHigh(outputRangeHigh)
-            // .outputRangeLow(outputRangeLow)
+            .kFF(0.000156)
+            .maxAcceleration(1500)
+            .maxVelocity(2000)
+            .outputRangeHigh(1)
+            .outputRangeLow(-1)
+            // .allowedClosedLoopError(0)
             // .minOutputVelocity(minOutputVelocity)
             .build();
     public static final MotorConfig FRONT_LEFT =
@@ -99,9 +110,9 @@ public final class Constants {
             .positionConversionFactor(ENCODER_POSITION_CONVERSION)
             .openLoopRampRate(OPEN_RAMP_RATE)
             .build();
+  }
 
-    public static final int PIGEON_MOTOR_PORT = 2;
-
+  public static final class PoseConstants {
     // Distance between centers of right and left wheels on robot
     public static final double kTrackWidth = Units.inchesToMeters(22.09);
     // Distance between centers of front and back wheels on robot
@@ -115,31 +126,43 @@ public final class Constants {
             new Translation2d(-kWheelBase / 2, -kTrackWidth / 2));
 
     public static final int kEncoderCPR = 4096;
-    public static final double kWheelDiameterMeters = Units.inchesToMeters(8);
+    public static final double kWheelDiameterMeters = Units.inchesToMeters(6);
     public static final double kEncoderDistancePerPulse =
         // Assumes the encoders are directly mounted on the wheel shafts
         (kWheelDiameterMeters * Math.PI) / (double) kEncoderCPR;
 
-    // These are example values only - DO NOT USE THESE FOR YOUR OWN ROBOT!
-    // These characterization values MUST be determined either experimentally or theoretically
-    // for *your* robot's drive.
-    // The SysId tool provides a convenient method for obtaining these values for your robot.
-    // public static final SimpleMotorFeedforward kFeedforward =
-    //     new SimpleMotorFeedforward(1, 0.8, 0.15);
+    // Physical location of the camera on the robot, relative to the center of the
+    // robot.
+    public static final Transform2d CAMERA_TO_ROBOT =
+        new Transform2d(
+            new Translation2d(-0.25, 0), // in meters (x,y)
+            new Rotation2d());
 
-    // // Example value only - as above, this must be tuned for your drive!
-    // public static final double kPFrontLeftVel = 0.5;
-    // public static final double kPRearLeftVel = 0.5;
-    // public static final double kPFrontRightVel = 0.5;
-    // public static final double kPRearRightVel = 0.5;
+    // 4 ft. 5⅜ in diameter
+    private static final double targetWidth = Units.inchesToMeters(4 * 12 + 5 + 3 / 8); // meters
+
+    // See
+    // https://firstfrc.blob.core.windows.net/frc2020/PlayingField/2020FieldDrawing-SeasonSpecific.pdf
+    // page 197
+    private static final double targetHeight =
+        Units.inchesToMeters(98.19) - Units.inchesToMeters(81.19); // meters
+    public static final double targetHeightAboveGround = Units.inchesToMeters(81.19); // meters
+
+    // See https://firstfrc.blob.core.windows.net/frc2020/PlayingField/LayoutandMarkingDiagram.pdf
+    // pages 4 and 5
+    public static final double kFarTgtXPos = Units.feetToMeters(54);
+    public static final double kFarTgtYPos =
+        Units.feetToMeters(27 / 2) - Units.inchesToMeters(43.75) - Units.inchesToMeters(48.0 / 2.0);
+    public static final Pose2d kFarTargetPose =
+        new Pose2d(new Translation2d(kFarTgtXPos, kFarTgtYPos), new Rotation2d(0.0));
   }
 
   public static final class IntakeConstants {
     // TODO: find these values from SimId
     private static final PIDConfig PID_DEFAULTS =
         PIDConfig.builder()
-            .kP(0.8)
-            .kI(0)
+            .kP(5e-5)
+            .kI(1e-6)
             .kD(0)
             .kFF(5)
             // .maxAcceleration(maxAcceleration)
@@ -149,7 +172,68 @@ public final class Constants {
             // .minOutputVelocity(minOutputVelocity)
             .build();
     public static final MotorConfig INTAKE_MOTOR =
-        MotorConfig.builder().canId(4).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).build();
-    public static final int SPEED = 5700;
+        MotorConfig.builder().canId(6).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).build();
+
+    // public static final MotorConfig INTAKE_LIFT_MOTOR =
+    //   MotorConfig.builder().canId(6).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).build();
+    public static final double SPEED = 5700 * .90;
+  }
+
+  public static final class ElevatorConstants {
+    // TODO: find these values from SimId
+    private static final PIDConfig PID_DEFAULTS =
+        PIDConfig.builder()
+            .kP(5e-5)
+            .kI(1e-6)
+            .kD(0)
+            .kFF(5)
+            // .maxAcceleration(maxAcceleration)
+            // .maxVelocity(maxVelocity)
+            // .outputRangeHigh(outputRangeHigh)
+            // .outputRangeLow(outputRangeLow)
+            // .minOutputVelocity(minOutputVelocity)
+            .build();
+    public static final MotorConfig ELEVATOR_MOTOR =
+        MotorConfig.builder().canId(7).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).build();
+    public static final double SPEED = 5700; // * .80;
+  }
+
+  public static final class ShooterConstants {
+    // TODO: find these values from SimId
+    private static final PIDConfig PID_DEFAULTS =
+        PIDConfig.builder()
+            .kP(5e-5)
+            .kI(1e-6)
+            .kD(0)
+            .kFF(5)
+            // .maxAcceleration(maxAcceleration)
+            // .maxVelocity(maxVelocity)
+            // .outputRangeHigh(outputRangeHigh)
+            // .outputRangeLow(outputRangeLow)
+            // .minOutputVelocity(minOutputVelocity)
+            .build();
+    public static final MotorConfig SHOOTER_MOTOR =
+        MotorConfig.builder()
+            .canId(13)
+            .idleMode(IdleMode.kCoast)
+            .pidConfig(PID_DEFAULTS)
+            // TODO: if we add a second motor
+            //   .follower(
+            //
+            // MotorConfig.builder().canId(15).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).inverted(true).build()
+            //   )
+            .build();
+  }
+
+  public static final class SensorConstants {
+    public static final String CAMERA = "photoncamera"; // TODO:
+    public static final int PIGEON_MOTOR_PORT = 2;
+  }
+
+  public static final class VisionConstants {
+    public static final double HEIGHT_TO_GOAL = Units.inchesToMeters(8 * 12 + 5 + 3 / 8);
+    public static final double HEIGHT_TO_CAMERA = Units.inchesToMeters(45); // FIXME:
+    public static final double HEIGHT_FROM_CAMERA_TO_GOAL = HEIGHT_TO_GOAL - HEIGHT_TO_CAMERA;
+    public static final double CAMERA_TILT = 20; // degrees
   }
 }

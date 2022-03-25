@@ -19,8 +19,13 @@ public class MotorConfig {
   @Builder.Default private boolean inverted = false;
   @Builder.Default private double positionConversionFactor = 1;
   @Singular private List<PIDConfig> pidConfigs;
+  private MotorConfig follower;
 
   public CANSparkMax createMotor() {
+    return createMotor(true);
+  }
+
+  private CANSparkMax createMotor(boolean burnFlash) {
     var motor = new CANSparkMax(getCanId(), MotorType.kBrushless);
     motor.restoreFactoryDefaults();
     motor.setClosedLoopRampRate(getClosedLoopRampRate());
@@ -45,7 +50,18 @@ public class MotorConfig {
       pidController.setSmartMotionMinOutputVelocity(pidConfig.getMinOutputVelocity(), i);
     }
 
-    motor.burnFlash();
+    if (follower != null) {
+      boolean followerInverted = follower.inverted;
+      follower.inverted = this.inverted;
+
+      var followerMotor = follower.createMotor(false);
+      followerMotor.follow(motor, followerInverted);
+      followerMotor.burnFlash();
+    }
+
+    if (burnFlash) {
+      motor.burnFlash();
+    }
     return motor;
   }
 
@@ -56,8 +72,8 @@ public class MotorConfig {
     private double kI;
     private double kD;
     private double kFF;
-    private double outputRangeLow;
-    private double outputRangeHigh;
+    @Builder.Default private double outputRangeLow = -1d;
+    @Builder.Default private double outputRangeHigh = 1d;
     private double allowedClosedLoopError;
     private double maxAcceleration;
     private double maxVelocity;
