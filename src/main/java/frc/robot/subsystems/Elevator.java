@@ -42,10 +42,15 @@ public class Elevator extends SubsystemBase {
     motor.getPIDController().setReference(SPEED * 0.75, CANSparkMax.ControlType.kVelocity);
   }
 
+  public void stop() {
+    motor.set(0);
+    
+  }
+
   public void toggle() {
     SmartDashboard.putNumber("ElevatorSpeed", motor.get());
     if (Math.abs(motor.getEncoder().getVelocity()) > 0) {
-      motor.set(0);
+      stop();
     } else {
       runUp();
     }
