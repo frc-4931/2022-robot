@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj2.command.button.Button;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OIConstants;
@@ -106,18 +107,20 @@ public class RobotContainer {
               () -> -driver1XBox.getLeftY(),
               driver1XBox::getLeftX,
               driver1XBox::getRightX,
+              driver1XBox::getLeftTriggerAxis,
               vision,
               imu,
               rumbler);
       setDrivetrainDefault(driveCommand);
-      createButton(driver1XBox, XboxController.Button.kRightBumper)
-          .whenPressed(driveCommand::toggleFieldOriented);
+      // createButton(driver1XBox, XboxController.Button.kRightBumper)
+      //     .whenPressed(driveCommand::toggleFieldOriented);
       createButton(driver1XBox, XboxController.Button.kLeftBumper)
           .whenPressed(driveCommand::toggleDriveDirection);
       createButton(driver1XBox, XboxController.Button.kStart).whenPressed(imu::reset);
-      createButton(driver1XBox, XboxController.Button.kA).whenPressed(intake::toggle);
+      createButton(driver1XBox, XboxController.Button.kRightBumper).whenPressed(intake::toggle);
       createButton(driver1XBox, XboxController.Button.kB).whenPressed(elevator::toggle);
 
+      new Button(() -> (driver1XBox.getRightTriggerAxis() > .3)).whenPressed(driveCommand::toggleFieldOriented);
     } else {
       Joystick driver1Joystick = new Joystick(OIConstants.DRIVER_1);
       DriveCommand driveCommand =
@@ -126,6 +129,7 @@ public class RobotContainer {
               () -> -driver1Joystick.getY(),
               () -> driver1Joystick.getX(),
               () -> driver1Joystick.getTwist(),
+              () -> 1.0,
               vision,
               imu);
       setDrivetrainDefault(driveCommand);
@@ -134,13 +138,16 @@ public class RobotContainer {
 
   private void configureDriver2Controls() {
     Joystick joystick = new Joystick(OIConstants.DRIVER_2);
-    createButton(joystick, 7).whenPressed(vision::toggleLED);
-    createButton(joystick, 9).whenPressed(vision::takePicture);
-    createButton(joystick, 8).whenPressed(() -> vision.setPipeline(0));
-    createButton(joystick, 10).whenPressed(() -> vision.setPipeline(1));
+    createButton(joystick, 6).whenPressed(vision::toggleLED);
+    createButton(joystick, 5).whenPressed(vision::takePicture);
+    createButton(joystick, 3).whenPressed(() -> vision.setPipeline(0));
+    createButton(joystick, 4).whenPressed(() -> vision.setPipeline(1));
 
     createButton(joystick, 11).whenPressed(shooter::on);
     createButton(joystick, 12).whenPressed(shooter::off);
+    createButton(joystick, 10).whenPressed(elevator::runUp);
+    createButton(joystick, 9).whenPressed(elevator::stop);
+    createButton(joystick, 8).whenPressed(elevator::runDown);
   }
 
   private JoystickButton createButton(GenericHID joystick, int buttonNumber) {

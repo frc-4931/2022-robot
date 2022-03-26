@@ -26,6 +26,7 @@ public class DriveCommand extends CommandBase {
   private Supplier<Double> yAxisSupplier;
   private Supplier<Double> xAxisSupplier;
   private Supplier<Double> zAxisSupplier;
+  private Supplier<Double> multiplierSupplier;
   private boolean lockAngle = false;
   private boolean fieldOriented = true;
   private double driveMultiplier = 1;
@@ -36,9 +37,10 @@ public class DriveCommand extends CommandBase {
       Supplier<Double> yAxisSupplier,
       Supplier<Double> xAxisSupplier,
       Supplier<Double> zAxisSupplier,
+      Supplier<Double> multiplierSupplier,
       Vision vision,
       Gyro gyro) {
-    this(drivetrain, yAxisSupplier, xAxisSupplier, zAxisSupplier, vision, gyro, (l, r) -> {});
+    this(drivetrain, yAxisSupplier, xAxisSupplier, zAxisSupplier, multiplierSupplier, vision, gyro, (l, r) -> {});
   }
 
   public DriveCommand(
@@ -46,6 +48,7 @@ public class DriveCommand extends CommandBase {
       Supplier<Double> yAxisSupplier,
       Supplier<Double> xAxisSupplier,
       Supplier<Double> zAxisSupplier,
+      Supplier<Double> multiplierSupplier,
       Vision vision,
       Gyro gyro,
       BiConsumer<Double, Double> rumble) {
@@ -54,6 +57,7 @@ public class DriveCommand extends CommandBase {
     this.yAxisSupplier = yAxisSupplier;
     this.xAxisSupplier = xAxisSupplier;
     this.zAxisSupplier = zAxisSupplier;
+    this.multiplierSupplier = multiplierSupplier;
     this.gyro = gyro;
     this.rumbler = rumble;
     turnController = new PIDController(0.5, 0, 0);
@@ -66,6 +70,7 @@ public class DriveCommand extends CommandBase {
 
   @Override
   public void execute() {
+    driveMultiplier = Math.min(1-multiplierSupplier.get(),.5);
     // if running locked, get theta from vision
     if (lockAngle) {
       var target = vision.getLatestResult();
@@ -77,8 +82,8 @@ public class DriveCommand extends CommandBase {
         var setpoint = target.get().getYaw();
         var angle = gyro.getAngle();
         drivetrain.driveCartesian(
-            yAxisSupplier.get(),
-            xAxisSupplier.get(),
+          driveMultiplier * yAxisSupplier.get(),
+          driveMultiplier * xAxisSupplier.get(),
             turnController.calculate(angle, setpoint),
             angle);
         if (needsDriverNotify) {
@@ -93,14 +98,16 @@ public class DriveCommand extends CommandBase {
       rumbler.accept(left, right);
     }
     // else get theta from joystick
-    else if (fieldOriented) {
-      drivetrain.driveCartesian(
-          yAxisSupplier.get(), xAxisSupplier.get(), zAxisSupplier.get(), gyro.getAngle());
-    } else {
-      drivetrain.driveCartesian(
-          driveMultiplier * yAxisSupplier.get(),
-          driveMultiplier * xAxisSupplier.get(),
-          zAxisSupplier.get());
+    else {
+      if (fieldOriented) {
+        drivetrain.driveCartesian(
+          driveMultiplier * yAxisSupplier.get(),  driveMultiplier * xAxisSupplier.get(), zAxisSupplier.get(), gyro.getAngle());
+      } else {
+        drivetrain.driveCartesian(
+            driveMultiplier * yAxisSupplier.get(),
+            driveMultiplier * xAxisSupplier.get(),
+            zAxisSupplier.get());
+      }
     }
   }
 
