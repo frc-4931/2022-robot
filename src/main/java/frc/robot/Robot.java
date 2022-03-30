@@ -33,7 +33,7 @@ public class Robot extends TimedRobot {
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
     DataLogManager.start();
-    LiveWindow.disableAllTelemetry();
+    // LiveWindow.disableAllTelemetry();
     addPeriodic(() -> NetworkTableInstance.getDefault().flush(), 0.02, 0.01);
     addPeriodic(m_robotContainer.getVisionPeriodic(), 0.02, 0.01);
     addPeriodic(m_robotContainer.getDrivetrainPeriodic(), 0.02, 0.01);

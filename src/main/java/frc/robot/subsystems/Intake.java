@@ -15,17 +15,42 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Intake extends SubsystemBase {
   private final CANSparkMax intakeMotor;
+  private final CANSparkMax liftMotor;
   private boolean spinning = false;
 
   public Intake() {
     intakeMotor = INTAKE_MOTOR.createMotor();
+    liftMotor = INTAKE_LIFT_MOTOR.createMotor();
     SmartDashboard.putBoolean("Intake", spinning);
   }
 
-  // @Override
-  // public void periodic() {
+  public void lift() {
+    var pos = SmartDashboard.getNumber("Intake.UpPos", UP_POSITION);
+    liftMotor.getPIDController().setReference(pos, ControlType.kSmartMotion, 0);
+  }
 
-  // }
+  public void slowLower() {
+    liftMotor.getPIDController().setReference(15, ControlType.kSmartMotion, 1);
+  }
+  
+  public void lower() {
+    var pos = SmartDashboard.getNumber("Intake.DownPos", DOWN_POSITION);
+    liftMotor.getPIDController().setReference(pos, ControlType.kSmartMotion, 0);
+  }
+
+  public void liftOff() {
+    liftMotor.set(0);
+  }
+
+  public boolean isLiftUp() {
+    return false;
+    // return liftMotor.getEncoder().getPosition() < LIFT_THRESHOLD;
+  }
+
+  @Override
+  public void periodic() {
+    SmartDashboard.putNumber("LiftPosition", liftMotor.getEncoder().getPosition());
+  }
 
   private void setSpeed() {
     if (spinning) {

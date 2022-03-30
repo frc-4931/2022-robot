@@ -18,23 +18,26 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.Button;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OIConstants;
 import frc.robot.Constants.PoseConstants;
 import frc.robot.commands.DriveCommand;
+import frc.robot.commands.RunIntakeElevatorCommand;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.IMU;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Vision;
+import frc.robot.util.RumbleHelper;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -72,11 +75,11 @@ public class RobotContainer {
     intake = new Intake();
     shooter = new Shooter();
 
+    // new PIDTesting();
     // Configure the button bindings
-    // configureButtonBindings();
-
     configureDriver1Controls();
     configureDriver2Controls();
+    configureDriver3Controls();
     configureAutoChoices();
     loadPaths();
 
@@ -94,13 +97,14 @@ public class RobotContainer {
   }
 
   private void configureDriver1Controls() {
-    if (OIConstants.USE_XBOX) {
+    // if (OIConstants.USE_XBOX) {
       XboxController driver1XBox = new XboxController(OIConstants.DRIVER_1);
-      BiConsumer<Double, Double> rumbler =
-          (left, right) -> {
-            driver1XBox.setRumble(RumbleType.kLeftRumble, left);
-            driver1XBox.setRumble(RumbleType.kRightRumble, right);
-          };
+      RumbleHelper rumbler =
+          new RumbleHelper(
+              (left, right) -> {
+                driver1XBox.setRumble(RumbleType.kLeftRumble, left);
+                driver1XBox.setRumble(RumbleType.kRightRumble, right);
+              });
       DriveCommand driveCommand =
           new DriveCommand(
               drivetrain,
@@ -117,23 +121,42 @@ public class RobotContainer {
       createButton(driver1XBox, XboxController.Button.kLeftBumper)
           .whenPressed(driveCommand::toggleDriveDirection);
       createButton(driver1XBox, XboxController.Button.kStart).whenPressed(imu::reset);
-      createButton(driver1XBox, XboxController.Button.kRightBumper).whenPressed(intake::toggle);
+      createButton(driver1XBox, XboxController.Button.kRightBumper)
+          .toggleWhenPressed(new RunIntakeElevatorCommand(intake, elevator));
       createButton(driver1XBox, XboxController.Button.kB).whenPressed(elevator::toggle);
+      // FIXME: button A to shoot!
+      // createButton(driver1XBox, XboxController.Button.kA).whenPressed()
+      // TODO: remove these 3
+      createButton(driver1XBox, XboxController.Button.kA).whenPressed(intake::lift);
+      createButton(driver1XBox, XboxController.Button.kX).whenPressed(intake::liftOff);
+      createButton(driver1XBox, XboxController.Button.kY).whenPressed(intake::slowLower);
 
-      new Button(() -> (driver1XBox.getRightTriggerAxis() > .3)).whenPressed(driveCommand::toggleFieldOriented);
-    } else {
-      Joystick driver1Joystick = new Joystick(OIConstants.DRIVER_1);
-      DriveCommand driveCommand =
-          new DriveCommand(
-              drivetrain,
-              () -> -driver1Joystick.getY(),
-              () -> driver1Joystick.getX(),
-              () -> driver1Joystick.getTwist(),
-              () -> 1.0,
-              vision,
-              imu);
-      setDrivetrainDefault(driveCommand);
-    }
+      new Button(
+              () -> {
+                var rTrigger = driver1XBox.getRightTriggerAxis();
+                return rTrigger > .3;
+              })
+          .whenPressed(driveCommand::toggleFieldOriented);
+
+      // new Trigger(() -> (driver1XBox.getRightTriggerAxis() >= 0.7))
+      //     .debounce(.5)
+      //     .whileActiveOnce(
+      //         new StartEndCommand(
+      //             driveCommand::engageTargetLock, driveCommand::disengageTargetLock));
+      // new Button(() -> (driver1XBox.getLeftTriggerAxis() > .5)
+    // } else {
+    //   Joystick driver1Joystick = new Joystick(OIConstants.DRIVER_1);
+    //   DriveCommand driveCommand =
+    //       new DriveCommand(
+    //           drivetrain,
+    //           () -> -driver1Joystick.getY(),
+    //           () -> driver1Joystick.getX(),
+    //           () -> driver1Joystick.getTwist(),
+    //           () -> 1.0,
+    //           vision,
+    //           imu);
+    //   setDrivetrainDefault(driveCommand);
+    // }
   }
 
   private void configureDriver2Controls() {
@@ -149,6 +172,18 @@ public class RobotContainer {
     createButton(joystick, 9).whenPressed(elevator::stop);
     createButton(joystick, 8).whenPressed(elevator::runDown);
   }
+
+  private void configureDriver3Controls() {
+    Joystick joystick = new Joystick(OIConstants.DRIVER_3);
+    createButton(joystick, 7).whenPressed(intake::lift);
+    createButton(joystick, 9).whenPressed(intake::lower);
+    createButton(joystick, 8).whenPressed(intake::liftOff);
+
+    createButton(joystick, 11).whenPressed(intake::on);
+    createButton(joystick, 12).whenPressed(intake::off);
+  }
+
+  
 
   private JoystickButton createButton(GenericHID joystick, int buttonNumber) {
     return new JoystickButton(joystick, buttonNumber);

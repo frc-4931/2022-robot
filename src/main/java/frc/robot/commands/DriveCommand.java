@@ -9,7 +9,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Vision;
-import java.util.function.BiConsumer;
+import frc.robot.util.RumbleHelper;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class DriveCommand extends CommandBase {
@@ -21,8 +22,7 @@ public class DriveCommand extends CommandBase {
   private Drivetrain drivetrain;
   private Vision vision;
   private Gyro gyro;
-  private BiConsumer<Double, Double> rumbler;
-  private int driverNotify = -1;
+  private Optional<RumbleHelper> rumbler;
   private Supplier<Double> yAxisSupplier;
   private Supplier<Double> xAxisSupplier;
   private Supplier<Double> zAxisSupplier;
@@ -40,7 +40,15 @@ public class DriveCommand extends CommandBase {
       Supplier<Double> multiplierSupplier,
       Vision vision,
       Gyro gyro) {
-    this(drivetrain, yAxisSupplier, xAxisSupplier, zAxisSupplier, multiplierSupplier, vision, gyro, (l, r) -> {});
+    this(
+        drivetrain,
+        yAxisSupplier,
+        xAxisSupplier,
+        zAxisSupplier,
+        multiplierSupplier,
+        vision,
+        gyro,
+        Optional.empty());
   }
 
   public DriveCommand(
@@ -51,7 +59,27 @@ public class DriveCommand extends CommandBase {
       Supplier<Double> multiplierSupplier,
       Vision vision,
       Gyro gyro,
-      BiConsumer<Double, Double> rumble) {
+      RumbleHelper rumble) {
+    this(
+        drivetrain,
+        yAxisSupplier,
+        xAxisSupplier,
+        zAxisSupplier,
+        multiplierSupplier,
+        vision,
+        gyro,
+        Optional.of(rumble));
+  }
+
+  private DriveCommand(
+      Drivetrain drivetrain,
+      Supplier<Double> yAxisSupplier,
+      Supplier<Double> xAxisSupplier,
+      Supplier<Double> zAxisSupplier,
+      Supplier<Double> multiplierSupplier,
+      Vision vision,
+      Gyro gyro,
+      Optional<RumbleHelper> rumble) {
     this.vision = vision;
     this.drivetrain = drivetrain;
     this.yAxisSupplier = yAxisSupplier;
@@ -70,38 +98,33 @@ public class DriveCommand extends CommandBase {
 
   @Override
   public void execute() {
-    driveMultiplier = Math.min(1-multiplierSupplier.get(),.5);
+    driveMultiplier = Math.min(1 - multiplierSupplier.get(), .5);
     // if running locked, get theta from vision
     if (lockAngle) {
       var target = vision.getLatestResult();
-      driverNotify = (driverNotify + 1) % NOTIFY_RATE;
-      var needsDriverNotify = driverNotify == 0;
-      double left = 0d;
-      double right = 0d;
       if (target.isPresent()) {
         var setpoint = target.get().getYaw();
         var angle = gyro.getAngle();
         drivetrain.driveCartesian(
-          driveMultiplier * yAxisSupplier.get(),
-          driveMultiplier * xAxisSupplier.get(),
+            driveMultiplier * yAxisSupplier.get(),
+            driveMultiplier * xAxisSupplier.get(),
             turnController.calculate(angle, setpoint),
             angle);
-        if (needsDriverNotify) {
-          left = RUMBLE_LEFT_LOCKED;
-          right = RUMBLE_RIGHT_LOCKED;
-        }
-      } else if (needsDriverNotify) {
-        left = RUMBLE_LEFT_NO_TARGET;
-        right = RUMBLE_RIGHT_NO_TARGET;
-      }
+        rumbler.ifPresent(r -> r.rumble(RUMBLE_LEFT_LOCKED, RUMBLE_RIGHT_LOCKED, NOTIFY_RATE));
 
-      rumbler.accept(left, right);
+      } else {
+        rumbler.ifPresent(
+            r -> r.rumble(RUMBLE_LEFT_NO_TARGET, RUMBLE_RIGHT_NO_TARGET, NOTIFY_RATE));
+      }
     }
     // else get theta from joystick
     else {
       if (fieldOriented) {
         drivetrain.driveCartesian(
-          driveMultiplier * yAxisSupplier.get(),  driveMultiplier * xAxisSupplier.get(), zAxisSupplier.get(), gyro.getAngle());
+            driveMultiplier * yAxisSupplier.get(),
+            driveMultiplier * xAxisSupplier.get(),
+            zAxisSupplier.get(),
+            gyro.getAngle());
       } else {
         drivetrain.driveCartesian(
             driveMultiplier * yAxisSupplier.get(),
@@ -148,6 +171,10 @@ public class DriveCommand extends CommandBase {
     lockAngle = targetLock;
     SmartDashboard.putBoolean("TargetLocked", lockAngle);
   }
+
+  public void engageTargetLock() {}
+
+  public void disengageTargetLock() {}
 
   @Override
   public boolean isFinished() {

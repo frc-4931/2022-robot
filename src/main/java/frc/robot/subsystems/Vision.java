@@ -2,6 +2,9 @@ package frc.robot.subsystems;
 
 import static frc.robot.Constants.VisionConstants.*;
 
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.HttpCamera;
+import edu.wpi.first.cscore.HttpCamera.HttpCameraKind;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -19,6 +22,9 @@ public class Vision {
     PortForwarder.add(5803, "limelight.local", 5803);
     PortForwarder.add(5804, "limelight.local", 5804);
     PortForwarder.add(5805, "limelight.local", 5805);
+    HttpCamera limelighCamera =
+        new HttpCamera("Limelight", "http://limelight.local:5800", HttpCameraKind.kMJPGStreamer);
+    CameraServer.startAutomaticCapture(limelighCamera);
   }
 
   public Optional<VisionResult> getLatestResult() {
@@ -65,6 +71,7 @@ public class Vision {
   }
 
   public void takePicture() {
+    networkTable.getEntry("snapshot").setNumber(0);
     networkTable.getEntry("snapshot").setNumber(1);
   }
 

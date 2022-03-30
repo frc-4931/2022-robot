@@ -13,6 +13,7 @@ import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import frc.robot.MotorConfig.PIDConfig;
+import frc.robot.MotorConfig.SoftLimit;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
@@ -27,12 +28,12 @@ public final class Constants {
     public static final boolean USE_XBOX = true;
     public static final int DRIVER_1 = 0;
     public static final int DRIVER_2 = 1;
+    public static final int DRIVER_3 = 2;
 
     public static final int FRONT_CAMERA = 0;
     public static final String FRONT_CAMERA_NAME = "front-camera";
 
-    public static final int NOTIFY_RATE =
-        50; // rumble drive feedback once every <rate> times through the loop;
+    public static final double NOTIFY_RATE = 2; // rumble drive feedback once every <rate> seconds;
     public static final double RUMBLE_LEFT_LOCKED = .5;
     public static final double RUMBLE_RIGHT_LOCKED = 0d;
     public static final double RUMBLE_LEFT_NO_TARGET = .9;
@@ -57,7 +58,7 @@ public final class Constants {
   }
 
   public static final class DriveConstants {
-    private static final double OPEN_RAMP_RATE = 3;
+    private static final double OPEN_RAMP_RATE = 1.5;
     private static final double WHEEL_DIAMETER_M = Units.inchesToMeters(8);
     private static final double DRIVE_GEAR_RATIO = (70d / 14d) * (66d / 30d);
     private static final double ENCODER_POSITION_CONVERSION =
@@ -158,24 +159,52 @@ public final class Constants {
   }
 
   public static final class IntakeConstants {
-    // TODO: find these values from SimId
-    private static final PIDConfig PID_DEFAULTS =
-        PIDConfig.builder()
-            .kP(5e-5)
-            .kI(1e-6)
+    public static final MotorConfig INTAKE_MOTOR =
+        MotorConfig.builder().canId(6).idleMode(IdleMode.kCoast).pidConfig(
+            PIDConfig.builder()
+            .kP(0.74646)
+            .kI(0)
             .kD(0)
             .kFF(5)
             // .maxAcceleration(maxAcceleration)
             // .maxVelocity(maxVelocity)
-            // .outputRangeHigh(outputRangeHigh)
-            // .outputRangeLow(outputRangeLow)
+            // .outputRangeHigh(1)
+            // .outputRangeLow(-1)
             // .minOutputVelocity(minOutputVelocity)
-            .build();
-    public static final MotorConfig INTAKE_MOTOR =
-        MotorConfig.builder().canId(6).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).build();
+            .build()
+        ).build();
 
-    // public static final MotorConfig INTAKE_LIFT_MOTOR =
-    //   MotorConfig.builder().canId(6).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).build();
+    public static final MotorConfig INTAKE_LIFT_MOTOR =
+        MotorConfig.builder()
+            .canId(12)
+            .idleMode(IdleMode.kBrake)
+            // .inverted(true)
+            .pidConfig(PIDConfig.builder()
+            .kP(0.00005)
+            .kI(0.000001)
+            .kD(0)
+            .kFF(0.000156)
+            .maxVelocity(5700)
+            .maxAcceleration(4500)
+            .allowedClosedLoopError(0)
+            .build())
+            .pidConfig(PIDConfig.builder()
+            .kP(0.00005)
+            .kI(0.000001)
+            .kD(0)
+            .kFF(0.000156)
+            .maxVelocity(5700)
+            .maxAcceleration(2500)
+            .allowedClosedLoopError(0)
+            .build())
+            .softLimitForward(SoftLimit.builder().limit(30).build())
+            .softLimitReverse(SoftLimit.builder().limit(0).build())
+            // .m
+            .build();
+    public static final double UP_POSITION = 10;
+    public static final double DOWN_POSITION = 27;
+    public static final double LIFT_THRESHOLD = .5 * DOWN_POSITION;
+    public static final double WAIT_BEFORE_STARTIING = 1;
     public static final double SPEED = 5700 * .90;
   }
 
@@ -183,8 +212,8 @@ public final class Constants {
     // TODO: find these values from SimId
     private static final PIDConfig PID_DEFAULTS =
         PIDConfig.builder()
-            .kP(5e-5)
-            .kI(1e-6)
+            .kP(0.67755)
+            .kI(0)
             .kD(0)
             .kFF(5)
             // .maxAcceleration(maxAcceleration)
@@ -195,15 +224,15 @@ public final class Constants {
             .build();
     public static final MotorConfig ELEVATOR_MOTOR =
         MotorConfig.builder().canId(7).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).build();
-    public static final double SPEED = 5700; // * .80;
+    
+    public static final double SPEED = 5700 * .35;
   }
 
   public static final class ShooterConstants {
-    // TODO: find these values from SimId
     private static final PIDConfig PID_DEFAULTS =
         PIDConfig.builder()
-            .kP(5e-5)
-            .kI(1e-6)
+            .kP(0.071397)
+            .kI(0)
             .kD(0)
             .kFF(5)
             // .maxAcceleration(maxAcceleration)
