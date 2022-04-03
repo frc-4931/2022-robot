@@ -2,7 +2,6 @@ package frc.robot.commands;
 
 import static frc.robot.Constants.OIConstants.*;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -29,7 +28,8 @@ public class DriveCommand extends CommandBase {
   private Supplier<Double> multiplierSupplier;
   private boolean lockAngle = false;
   private boolean fieldOriented = true;
-  private double driveMultiplier = 1;
+  private boolean intakeIsFront = true;
+  // private double driveMultiplier = 1;
   private PIDController turnController;
 
   public DriveCommand(
@@ -91,14 +91,17 @@ public class DriveCommand extends CommandBase {
     turnController = new PIDController(0.5, 0, 0);
     setTargetLock(false);
     setForward(ForwardDirection.Intake);
-    setDriveMultiplier(1);
     setFieldOriented(true);
     addRequirements(drivetrain);
   }
 
   @Override
   public void execute() {
-    driveMultiplier = Math.min(1 - multiplierSupplier.get(), .5);
+
+    SmartDashboard.putBoolean("FrontIsIntake", intakeIsFront);
+    var multiplier = Math.max(1 - multiplierSupplier.get(), .5);
+    SmartDashboard.putNumber("DriveMultiplier", multiplier);
+
     // if running locked, get theta from vision
     if (lockAngle) {
       var target = vision.getLatestResult();
@@ -106,8 +109,8 @@ public class DriveCommand extends CommandBase {
         var setpoint = target.get().getYaw();
         var angle = gyro.getAngle();
         drivetrain.driveCartesian(
-            driveMultiplier * yAxisSupplier.get(),
-            driveMultiplier * xAxisSupplier.get(),
+            multiplier * yAxisSupplier.get(),
+            multiplier * xAxisSupplier.get(),
             turnController.calculate(angle, setpoint),
             angle);
         rumbler.ifPresent(r -> r.rumble(RUMBLE_LEFT_LOCKED, RUMBLE_RIGHT_LOCKED, NOTIFY_RATE));
@@ -121,17 +124,23 @@ public class DriveCommand extends CommandBase {
     else {
       if (fieldOriented) {
         drivetrain.driveCartesian(
-            driveMultiplier * yAxisSupplier.get(),
-            driveMultiplier * xAxisSupplier.get(),
-            zAxisSupplier.get(),
+            multiplier * yAxisSupplier.get(),
+            multiplier * xAxisSupplier.get(),
+            multiplier * zAxisSupplier.get(),
             gyro.getAngle());
       } else {
+        var driveMultiplier = multiplier * (intakeIsFront ? 1 : -1);
         drivetrain.driveCartesian(
             driveMultiplier * yAxisSupplier.get(),
             driveMultiplier * xAxisSupplier.get(),
-            zAxisSupplier.get());
+            multiplier * zAxisSupplier.get());
       }
     }
+  }
+
+  public void setupDriving() {
+    setFieldOriented(false);
+    setForward(ForwardDirection.Intake);
   }
 
   public void toggleFieldOriented() {
@@ -144,24 +153,23 @@ public class DriveCommand extends CommandBase {
   }
 
   public void toggleDriveDirection() {
-    setDriveMultiplier(driveMultiplier, -1 * driveMultiplier);
+    setForward(intakeIsFront ? ForwardDirection.Shooter : ForwardDirection.Intake);
   }
 
   public void setForward(ForwardDirection forwardDirection) {
-    double dir = (forwardDirection == ForwardDirection.Intake) ? 1d : -1d;
-    setDriveMultiplier(driveMultiplier, dir);
+    intakeIsFront = forwardDirection == ForwardDirection.Intake;
   }
 
-  public void setDriveMultiplier(double multiplier) {
-    setDriveMultiplier(MathUtil.clamp(multiplier, 0, 1), driveMultiplier);
-  }
+  // public void setDriveMultiplier(double multiplier) {
+  //   setDriveMultiplier(MathUtil.clamp(multiplier, 0, 1), driveMultiplier);
+  // }
 
-  private void setDriveMultiplier(double multiplier, double sign) {
-    driveMultiplier = Math.copySign(Math.abs(multiplier), sign);
+  // private void setDriveMultiplier(double multiplier, double sign) {
+  //   driveMultiplier = Math.copySign(Math.abs(multiplier), sign);
 
-    SmartDashboard.putBoolean("FrontIsIntake", driveMultiplier > 0);
-    SmartDashboard.putNumber("DriveMultiplier", Math.abs(driveMultiplier));
-  }
+  //   SmartDashboard.putBoolean("FrontIsIntake", driveMultiplier > 0);
+  //   SmartDashboard.putNumber("DriveMultiplier", Math.abs(driveMultiplier));
+  // }
 
   public void toggleTargetLock() {
     setTargetLock(!lockAngle);
@@ -169,6 +177,9 @@ public class DriveCommand extends CommandBase {
 
   public void setTargetLock(boolean targetLock) {
     lockAngle = targetLock;
+    if (targetLock) {
+      setForward(ForwardDirection.Intake);
+    }
     SmartDashboard.putBoolean("TargetLocked", lockAngle);
   }
 

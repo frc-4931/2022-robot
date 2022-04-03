@@ -22,6 +22,17 @@ public class Intake extends SubsystemBase {
     intakeMotor = INTAKE_MOTOR.createMotor();
     liftMotor = INTAKE_LIFT_MOTOR.createMotor();
     SmartDashboard.putBoolean("Intake", spinning);
+    SmartDashboard.putNumber("Intake.UpPos", UP_POSITION);
+    SmartDashboard.putNumber("Intake.DownPos", DOWN_POSITION);
+  }
+
+  public void reset() {
+    // something is causing the lift to get stuck in the down position.
+    liftMotor.getEncoder().setPosition(DOWN_POSITION + 2);
+  }
+
+  public void move(double amt) {
+    liftMotor.set(amt);
   }
 
   public void lift() {
@@ -32,7 +43,7 @@ public class Intake extends SubsystemBase {
   public void slowLower() {
     liftMotor.getPIDController().setReference(15, ControlType.kSmartMotion, 1);
   }
-  
+
   public void lower() {
     var pos = SmartDashboard.getNumber("Intake.DownPos", DOWN_POSITION);
     liftMotor.getPIDController().setReference(pos, ControlType.kSmartMotion, 0);

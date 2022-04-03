@@ -6,9 +6,6 @@ package frc.robot;
 
 import com.pathplanner.lib.PathPlanner;
 import com.pathplanner.lib.PathPlannerTrajectory;
-import com.pathplanner.lib.commands.PPMecanumControllerCommand;
-import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.Joystick;
@@ -17,17 +14,15 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.StartEndCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.Button;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OIConstants;
-import frc.robot.Constants.PoseConstants;
 import frc.robot.commands.DriveCommand;
 import frc.robot.commands.RunIntakeElevatorCommand;
+import frc.robot.commands.Shoot;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.IMU;
@@ -59,6 +54,7 @@ public class RobotContainer {
   private IMU imu;
   private Vision vision;
   private Pose2dHandler pose2dHandler;
+  private DriveCommand driveCommand;
 
   private SendableChooser<AutonomousRoute> routeChooser = new SendableChooser<>();
   private Map<AutonomousRoute, PathPlannerTrajectory> trajectories;
@@ -69,6 +65,7 @@ public class RobotContainer {
     SmartDashboard.putData("Field", field2d);
     imu = new IMU();
     vision = new Vision();
+    vision.setPipeline(1);
     pose2dHandler = new Pose2dHandler(imu, vision);
     drivetrain = new Drivetrain(pose2dHandler);
     elevator = new Elevator();
@@ -98,52 +95,56 @@ public class RobotContainer {
 
   private void configureDriver1Controls() {
     // if (OIConstants.USE_XBOX) {
-      XboxController driver1XBox = new XboxController(OIConstants.DRIVER_1);
-      RumbleHelper rumbler =
-          new RumbleHelper(
-              (left, right) -> {
-                driver1XBox.setRumble(RumbleType.kLeftRumble, left);
-                driver1XBox.setRumble(RumbleType.kRightRumble, right);
-              });
-      DriveCommand driveCommand =
-          new DriveCommand(
-              drivetrain,
-              () -> -driver1XBox.getLeftY(),
-              driver1XBox::getLeftX,
-              driver1XBox::getRightX,
-              driver1XBox::getLeftTriggerAxis,
-              vision,
-              imu,
-              rumbler);
-      setDrivetrainDefault(driveCommand);
-      // createButton(driver1XBox, XboxController.Button.kRightBumper)
-      //     .whenPressed(driveCommand::toggleFieldOriented);
-      createButton(driver1XBox, XboxController.Button.kLeftBumper)
-          .whenPressed(driveCommand::toggleDriveDirection);
-      createButton(driver1XBox, XboxController.Button.kStart).whenPressed(imu::reset);
-      createButton(driver1XBox, XboxController.Button.kRightBumper)
-          .toggleWhenPressed(new RunIntakeElevatorCommand(intake, elevator));
-      createButton(driver1XBox, XboxController.Button.kB).whenPressed(elevator::toggle);
-      // FIXME: button A to shoot!
-      // createButton(driver1XBox, XboxController.Button.kA).whenPressed()
-      // TODO: remove these 3
-      createButton(driver1XBox, XboxController.Button.kA).whenPressed(intake::lift);
-      createButton(driver1XBox, XboxController.Button.kX).whenPressed(intake::liftOff);
-      createButton(driver1XBox, XboxController.Button.kY).whenPressed(intake::slowLower);
+    XboxController driver1XBox = new XboxController(OIConstants.DRIVER_1);
+    RumbleHelper rumbler =
+        new RumbleHelper(
+            (left, right) -> {
+              driver1XBox.setRumble(RumbleType.kLeftRumble, left);
+              driver1XBox.setRumble(RumbleType.kRightRumble, right);
+            });
+    driveCommand =
+        new DriveCommand(
+            drivetrain,
+            () -> -driver1XBox.getLeftY(),
+            driver1XBox::getLeftX,
+            driver1XBox::getRightX,
+            driver1XBox::getLeftTriggerAxis,
+            vision,
+            imu,
+            rumbler);
+    setDrivetrainDefault(driveCommand);
+    // createButton(driver1XBox, XboxController.Button.kRightBumper)
+    //     .whenPressed(driveCommand::toggleFieldOriented);
+    // createButton(driver1XBox, XboxController.Button.kLeftBumper)
+    //     .whenPressed(driveCommand::toggleDriveDirection);
+    createButton(driver1XBox, XboxController.Button.kStart).whenPressed(imu::reset);
+    createButton(driver1XBox, XboxController.Button.kRightBumper)
+        .toggleWhenPressed(new RunIntakeElevatorCommand(intake, elevator));
 
-      new Button(
-              () -> {
-                var rTrigger = driver1XBox.getRightTriggerAxis();
-                return rTrigger > .3;
-              })
-          .whenPressed(driveCommand::toggleFieldOriented);
+    var runShooter = // new Shoot(shooter, elevator);
+        new RunCommand(shooter::on, shooter)
+            .alongWith(new WaitCommand(.3).andThen(elevator::runUp, elevator));
+    createButton(driver1XBox, XboxController.Button.kA).whenPressed(runShooter);
+    createButton(driver1XBox, XboxController.Button.kB)
+        .whenPressed(
+            new RunCommand(shooter::off, shooter)
+                .alongWith(new RunCommand(elevator::stop, elevator)));
+    // createButton(driver1XBox, XboxController.Button.kX).whenPressed(intake::liftOff);
+    // createButton(driver1XBox, XboxController.Button.kY).whenPressed(intake::slowLower);
 
-      // new Trigger(() -> (driver1XBox.getRightTriggerAxis() >= 0.7))
-      //     .debounce(.5)
-      //     .whileActiveOnce(
-      //         new StartEndCommand(
-      //             driveCommand::engageTargetLock, driveCommand::disengageTargetLock));
-      // new Button(() -> (driver1XBox.getLeftTriggerAxis() > .5)
+    new Button(
+            () -> {
+              var rTrigger = driver1XBox.getRightTriggerAxis();
+              return rTrigger > .3;
+            })
+        .whenPressed(driveCommand::toggleDriveDirection);
+
+    // new Trigger(() -> (driver1XBox.getRightTriggerAxis() >= 0.7))
+    //     .debounce(.5)
+    //     .whileActiveOnce(
+    //         new StartEndCommand(
+    //             driveCommand::engageTargetLock, driveCommand::disengageTargetLock));
+    // new Button(() -> (driver1XBox.getLeftTriggerAxis() > .5)
     // } else {
     //   Joystick driver1Joystick = new Joystick(OIConstants.DRIVER_1);
     //   DriveCommand driveCommand =
@@ -166,11 +167,11 @@ public class RobotContainer {
     createButton(joystick, 3).whenPressed(() -> vision.setPipeline(0));
     createButton(joystick, 4).whenPressed(() -> vision.setPipeline(1));
 
-    createButton(joystick, 11).whenPressed(shooter::on);
-    createButton(joystick, 12).whenPressed(shooter::off);
-    createButton(joystick, 10).whenPressed(elevator::runUp);
-    createButton(joystick, 9).whenPressed(elevator::stop);
-    createButton(joystick, 8).whenPressed(elevator::runDown);
+    createButton(joystick, 11).whenPressed(shooter::on, shooter);
+    createButton(joystick, 12).whenPressed(shooter::off, shooter);
+    createButton(joystick, 10).whenPressed(shooter::high, shooter);
+    createButton(joystick, 8).whenPressed(shooter::low, shooter);
+    // createButton(joystick, 8).whenPressed(elevator::runDown);
   }
 
   private void configureDriver3Controls() {
@@ -179,11 +180,23 @@ public class RobotContainer {
     createButton(joystick, 9).whenPressed(intake::lower);
     createButton(joystick, 8).whenPressed(intake::liftOff);
 
+    // new Button(() -> joystick.getPOV() == 0).whenPressed(intake::upABit, intake);
+    intake.setDefaultCommand(
+        new RunCommand(
+            () -> {
+              intake.move(joystick.getX());
+            },
+            intake));
+
     createButton(joystick, 11).whenPressed(intake::on);
     createButton(joystick, 12).whenPressed(intake::off);
-  }
 
-  
+    createButton(joystick, 5).whenPressed(elevator::runUp);
+    createButton(joystick, 3).whenPressed(elevator::runDown);
+    createButton(joystick, 4).whenPressed(elevator::stop);
+
+    createButton(joystick, 10).whenPressed(intake::reset);
+  }
 
   private JoystickButton createButton(GenericHID joystick, int buttonNumber) {
     return new JoystickButton(joystick, buttonNumber);
@@ -209,6 +222,7 @@ public class RobotContainer {
   private void loadPaths() {
     trajectories =
         Arrays.stream(AutonomousRoute.values())
+            .filter(r -> r != AutonomousRoute.DriveOut)
             .collect(
                 Collectors.toMap(
                     Function.identity(),
@@ -235,8 +249,35 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
+    // var choice = routeChooser.getSelected();
+    // if (choice == AutonomousRoute.DriveOut) {
+    double autoWait = SmartDashboard.getNumber(AUTONOMOUS_WAIT, 0.1);
+    var driveOut =
+        new RunCommand(
+                () -> {
+                  drivetrain.driveCartesian(.8, 0, 0, 0);
+                },
+                drivetrain)
+            .withTimeout(.5)
+            .andThen(drivetrain::stop, drivetrain)
+            .andThen(new Shoot(shooter, elevator))
+            .andThen(
+                new RunCommand(
+                        () -> {
+                          drivetrain.driveCartesian(.8, 0, 0, 0);
+                        },
+                        drivetrain)
+                    .withTimeout(1));
+    // new Shoot(shooter, elevator).alongWith(new DriveOut(drivetrain));
+    return new WaitCommand(autoWait)
+        .andThen(shooter::high, shooter)
+        .andThen(driveOut)
+        .andThen(() -> vision.setPipeline(1))
+        .andThen(driveCommand::setupDriving);
+    /*
+    }
     // Create config for trajectory
-    var trajectory = trajectories.get(routeChooser.getSelected());
+    var trajectory = trajectories.get(choice);
     trajectories = null;
     field2d.getObject("trajectory").setTrajectory(trajectory);
     // Reset odometry to the starting pose of the trajectory.
@@ -272,5 +313,6 @@ public class RobotContainer {
         autoWait > 0 ? new WaitCommand(autoWait).andThen(autonomousJobs) : autonomousJobs;
 
     return autonomousCommand;
+    */
   }
 }

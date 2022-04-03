@@ -35,6 +35,8 @@ public class MotorConfig {
     motor.setClosedLoopRampRate(getClosedLoopRampRate());
     motor.setIdleMode(getIdleMode());
     motor.setInverted(isInverted());
+    // motor.enableVoltageCompensation(nominalVoltage);
+    // motor.setSmartCurrentLimit(stallLimit, freeLimit)
     motor.setOpenLoopRampRate(getOpenLoopRampRate());
     if (getSoftLimitForward() != null) {
       motor.enableSoftLimit(SoftLimitDirection.kForward, true);
@@ -48,7 +50,7 @@ public class MotorConfig {
     motor.getEncoder().setPositionConversionFactor(getPositionConversionFactor());
     motor.getEncoder().setVelocityConversionFactor(getPositionConversionFactor() / 60);
     motor.getEncoder().setPosition(0);
-    
+
     SparkMaxPIDController pidController = motor.getPIDController();
     for (int i = 0; i < getPidConfigs().size(); i++) {
       PIDConfig pidConfig = getPidConfigs().get(i);

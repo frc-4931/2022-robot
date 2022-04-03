@@ -58,7 +58,7 @@ public final class Constants {
   }
 
   public static final class DriveConstants {
-    private static final double OPEN_RAMP_RATE = 1.5;
+    private static final double OPEN_RAMP_RATE = 0.75;
     private static final double WHEEL_DIAMETER_M = Units.inchesToMeters(8);
     private static final double DRIVE_GEAR_RATIO = (70d / 14d) * (66d / 30d);
     private static final double ENCODER_POSITION_CONVERSION =
@@ -74,7 +74,7 @@ public final class Constants {
             .maxVelocity(2000)
             .outputRangeHigh(1)
             .outputRangeLow(-1)
-            // .allowedClosedLoopError(0)
+            .allowedClosedLoopError(1)
             // .minOutputVelocity(minOutputVelocity)
             .build();
     public static final MotorConfig FRONT_LEFT =
@@ -160,49 +160,55 @@ public final class Constants {
 
   public static final class IntakeConstants {
     public static final MotorConfig INTAKE_MOTOR =
-        MotorConfig.builder().canId(6).idleMode(IdleMode.kCoast).pidConfig(
-            PIDConfig.builder()
-            .kP(0.74646)
-            .kI(0)
-            .kD(0)
-            .kFF(5)
-            // .maxAcceleration(maxAcceleration)
-            // .maxVelocity(maxVelocity)
-            // .outputRangeHigh(1)
-            // .outputRangeLow(-1)
-            // .minOutputVelocity(minOutputVelocity)
-            .build()
-        ).build();
+        MotorConfig.builder()
+            .canId(6)
+            .idleMode(IdleMode.kCoast)
+            .pidConfig(
+                PIDConfig.builder()
+                    .kP(0.74646)
+                    .kI(0)
+                    .kD(0)
+                    .kFF(0.000156)
+                    // .maxAcceleration(maxAcceleration)
+                    // .maxVelocity(maxVelocity)
+                    // .outputRangeHigh(1)
+                    // .outputRangeLow(-1)
+                    // .minOutputVelocity(minOutputVelocity)
+                    .build())
+            .build();
 
     public static final MotorConfig INTAKE_LIFT_MOTOR =
         MotorConfig.builder()
             .canId(12)
             .idleMode(IdleMode.kBrake)
             // .inverted(true)
-            .pidConfig(PIDConfig.builder()
-            .kP(0.00005)
-            .kI(0.000001)
-            .kD(0)
-            .kFF(0.000156)
-            .maxVelocity(5700)
-            .maxAcceleration(4500)
-            .allowedClosedLoopError(0)
-            .build())
-            .pidConfig(PIDConfig.builder()
-            .kP(0.00005)
-            .kI(0.000001)
-            .kD(0)
-            .kFF(0.000156)
-            .maxVelocity(5700)
-            .maxAcceleration(2500)
-            .allowedClosedLoopError(0)
-            .build())
-            .softLimitForward(SoftLimit.builder().limit(30).build())
-            .softLimitReverse(SoftLimit.builder().limit(0).build())
+            .pidConfig(
+                PIDConfig.builder()
+                    .kP(0.00005)
+                    .kI(0.000001)
+                    .kD(0)
+                    .kFF(0.000156)
+                    .maxVelocity(4700)
+                    .maxAcceleration(8000)
+                    .allowedClosedLoopError(0)
+                    .build())
+            .pidConfig(
+                PIDConfig.builder()
+                    .kP(0.00005)
+                    .kI(0.000001)
+                    .kD(0)
+                    .kFF(0.000156)
+                    .maxVelocity(5700)
+                    .maxAcceleration(2500)
+                    .allowedClosedLoopError(0)
+                    .build())
+            .softLimitForward(SoftLimit.builder().limit(29).build())
+            .softLimitReverse(SoftLimit.builder().limit(-.5f).build())
+            .openLoopRampRate(5)
             // .m
             .build();
-    public static final double UP_POSITION = 10;
-    public static final double DOWN_POSITION = 27;
+    public static final double UP_POSITION = 0;
+    public static final double DOWN_POSITION = 29;
     public static final double LIFT_THRESHOLD = .5 * DOWN_POSITION;
     public static final double WAIT_BEFORE_STARTIING = 1;
     public static final double SPEED = 5700 * .90;
@@ -215,7 +221,7 @@ public final class Constants {
             .kP(0.67755)
             .kI(0)
             .kD(0)
-            .kFF(5)
+            .kFF(0.000156)
             // .maxAcceleration(maxAcceleration)
             // .maxVelocity(maxVelocity)
             // .outputRangeHigh(outputRangeHigh)
@@ -224,21 +230,22 @@ public final class Constants {
             .build();
     public static final MotorConfig ELEVATOR_MOTOR =
         MotorConfig.builder().canId(7).idleMode(IdleMode.kCoast).pidConfig(PID_DEFAULTS).build();
-    
+
     public static final double SPEED = 5700 * .35;
   }
 
   public static final class ShooterConstants {
     private static final PIDConfig PID_DEFAULTS =
         PIDConfig.builder()
-            .kP(0.071397)
+            .kP(0.098557)
             .kI(0)
             .kD(0)
-            .kFF(5)
-            // .maxAcceleration(maxAcceleration)
-            // .maxVelocity(maxVelocity)
-            // .outputRangeHigh(outputRangeHigh)
-            // .outputRangeLow(outputRangeLow)
+            .kFF(0.000156)
+            .maxAcceleration(14000)
+            .maxVelocity(5700)
+            .outputRangeHigh(1)
+            .outputRangeLow(-1)
+            .allowedClosedLoopError(.8)
             // .minOutputVelocity(minOutputVelocity)
             .build();
     public static final MotorConfig SHOOTER_MOTOR =

@@ -30,7 +30,7 @@ public class Elevator extends SubsystemBase {
   }
 
   public void runDown() {
-    motor.getPIDController().setReference(SPEED * 0.75, CANSparkMax.ControlType.kVelocity);
+    motor.getPIDController().setReference(SPEED * 0.25, CANSparkMax.ControlType.kVelocity);
   }
 
   public void stop() {
