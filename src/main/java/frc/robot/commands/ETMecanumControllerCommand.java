@@ -92,19 +92,14 @@ public class ETMecanumControllerCommand extends CommandBase {
 
     targetWheelSpeeds.desaturate(maxWheelVelocityMetersPerSecond);
 
-    var frontLeftSpeedSetpoint = targetWheelSpeeds.frontLeftMetersPerSecond;
-    var rearLeftSpeedSetpoint = targetWheelSpeeds.rearLeftMetersPerSecond;
-    var frontRightSpeedSetpoint = targetWheelSpeeds.frontRightMetersPerSecond;
-    var rearRightSpeedSetpoint = targetWheelSpeeds.rearRightMetersPerSecond;
+    // var frontLeftSpeedSetpoint = targetWheelSpeeds.frontLeftMetersPerSecond;
+    // var rearLeftSpeedSetpoint = targetWheelSpeeds.rearLeftMetersPerSecond;
+    // var frontRightSpeedSetpoint = targetWheelSpeeds.frontRightMetersPerSecond;
+    // var rearRightSpeedSetpoint = targetWheelSpeeds.rearRightMetersPerSecond;
 
     // TODO: maybe log entries?
 
-    outputWheelSpeeds.accept(
-        new MecanumDriveWheelSpeeds(
-            frontLeftSpeedSetpoint,
-            frontRightSpeedSetpoint,
-            rearLeftSpeedSetpoint,
-            rearRightSpeedSetpoint));
+    outputWheelSpeeds.accept(targetWheelSpeeds);
   }
 
   @Override

@@ -2,6 +2,7 @@ package frc.robot;
 
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.IdleMode;
+import com.revrobotics.CANSparkMax.SoftLimitDirection;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.SparkMaxPIDController;
 import java.util.List;
@@ -15,20 +16,40 @@ public class MotorConfig {
   private int canId;
   @Builder.Default private double closedLoopRampRate = 0;
   @Builder.Default private double openLoopRampRate = 0;
+  @Builder.Default private MotorType type = MotorType.kBrushless;
+  private SoftLimit softLimitForward;
+  private SoftLimit softLimitReverse;
   @Builder.Default private IdleMode idleMode = IdleMode.kBrake;
   @Builder.Default private boolean inverted = false;
   @Builder.Default private double positionConversionFactor = 1;
   @Singular private List<PIDConfig> pidConfigs;
+  private MotorConfig follower;
 
   public CANSparkMax createMotor() {
+    return createMotor(true);
+  }
+
+  private CANSparkMax createMotor(boolean burnFlash) {
     var motor = new CANSparkMax(getCanId(), MotorType.kBrushless);
     motor.restoreFactoryDefaults();
     motor.setClosedLoopRampRate(getClosedLoopRampRate());
     motor.setIdleMode(getIdleMode());
     motor.setInverted(isInverted());
+    // motor.enableVoltageCompensation(nominalVoltage);
+    // motor.setSmartCurrentLimit(stallLimit, freeLimit)
     motor.setOpenLoopRampRate(getOpenLoopRampRate());
+    if (getSoftLimitForward() != null) {
+      motor.enableSoftLimit(SoftLimitDirection.kForward, true);
+      motor.setSoftLimit(SoftLimitDirection.kForward, getSoftLimitForward().getLimit());
+    }
+    if (getSoftLimitReverse() != null) {
+      motor.enableSoftLimit(SoftLimitDirection.kReverse, true);
+      motor.setSoftLimit(SoftLimitDirection.kReverse, getSoftLimitReverse().getLimit());
+    }
+
     motor.getEncoder().setPositionConversionFactor(getPositionConversionFactor());
     motor.getEncoder().setVelocityConversionFactor(getPositionConversionFactor() / 60);
+    motor.getEncoder().setPosition(0);
 
     SparkMaxPIDController pidController = motor.getPIDController();
     for (int i = 0; i < getPidConfigs().size(); i++) {
@@ -45,7 +66,18 @@ public class MotorConfig {
       pidController.setSmartMotionMinOutputVelocity(pidConfig.getMinOutputVelocity(), i);
     }
 
-    motor.burnFlash();
+    if (follower != null) {
+      boolean followerInverted = follower.inverted;
+      follower.inverted = this.inverted;
+
+      var followerMotor = follower.createMotor(false);
+      followerMotor.follow(motor, followerInverted);
+      followerMotor.burnFlash();
+    }
+
+    if (burnFlash) {
+      motor.burnFlash();
+    }
     return motor;
   }
 
@@ -56,11 +88,17 @@ public class MotorConfig {
     private double kI;
     private double kD;
     private double kFF;
-    private double outputRangeLow;
-    private double outputRangeHigh;
-    private double allowedClosedLoopError;
+    @Builder.Default private double outputRangeLow = -1d;
+    @Builder.Default private double outputRangeHigh = 1d;
+    @Builder.Default private double allowedClosedLoopError = 0;
     private double maxAcceleration;
     private double maxVelocity;
     private double minOutputVelocity;
+  }
+
+  @Builder
+  @Getter
+  public static final class SoftLimit {
+    private float limit;
   }
 }

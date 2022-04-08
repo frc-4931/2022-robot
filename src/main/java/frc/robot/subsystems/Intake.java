@@ -15,37 +15,76 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Intake extends SubsystemBase {
   private final CANSparkMax intakeMotor;
+  private final CANSparkMax liftMotor;
   private boolean spinning = false;
 
   public Intake() {
     intakeMotor = INTAKE_MOTOR.createMotor();
+    liftMotor = INTAKE_LIFT_MOTOR.createMotor();
+    SmartDashboard.putBoolean("Intake", spinning);
+    SmartDashboard.putNumber("Intake.UpPos", UP_POSITION);
+    SmartDashboard.putNumber("Intake.DownPos", DOWN_POSITION);
+  }
+
+  public void reset() {
+    // something is causing the lift to get stuck in the down position.
+    liftMotor.getEncoder().setPosition(DOWN_POSITION + 2);
+  }
+
+  public void move(double amt) {
+    liftMotor.set(amt);
+  }
+
+  public void lift() {
+    var pos = SmartDashboard.getNumber("Intake.UpPos", UP_POSITION);
+    liftMotor.getPIDController().setReference(pos, ControlType.kSmartMotion, 0);
+  }
+
+  public void slowLower() {
+    liftMotor.getPIDController().setReference(15, ControlType.kSmartMotion, 1);
+  }
+
+  public void lower() {
+    var pos = SmartDashboard.getNumber("Intake.DownPos", DOWN_POSITION);
+    liftMotor.getPIDController().setReference(pos, ControlType.kSmartMotion, 0);
+  }
+
+  public void liftOff() {
+    liftMotor.set(0);
+  }
+
+  public boolean isLiftUp() {
+    return false;
+    // return liftMotor.getEncoder().getPosition() < LIFT_THRESHOLD;
   }
 
   @Override
   public void periodic() {
-    SmartDashboard.putBoolean("Intake", spinning);
+    SmartDashboard.putNumber("LiftPosition", liftMotor.getEncoder().getPosition());
   }
 
-  private void setSpeed(int rpm) {
-    intakeMotor.getPIDController().setReference(rpm, ControlType.kSmartVelocity);
+  private void setSpeed() {
+    if (spinning) {
+      intakeMotor.getPIDController().setReference(SPEED, ControlType.kVelocity);
+    } else {
+      intakeMotor.set(0);
+    }
+
+    SmartDashboard.putBoolean("Intake", spinning);
   }
 
   public void on() {
     spinning = true;
-    setSpeed(SPEED);
+    setSpeed();
   }
 
   public void off() {
     spinning = false;
-    setSpeed(0);
+    setSpeed();
   }
 
   public void toggle() {
     spinning = !spinning;
-    if (spinning) {
-      on();
-    } else {
-      off();
-    }
+    setSpeed();
   }
 }
