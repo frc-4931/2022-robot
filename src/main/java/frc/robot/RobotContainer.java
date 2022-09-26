@@ -118,8 +118,11 @@ public class RobotContainer {
     // createButton(driver1XBox, XboxController.Button.kLeftBumper)
     //     .whenPressed(driveCommand::toggleDriveDirection);
     createButton(driver1XBox, XboxController.Button.kStart).whenPressed(imu::reset);
+    RunIntakeElevatorCommand riec = new RunIntakeElevatorCommand(intake, elevator);
     createButton(driver1XBox, XboxController.Button.kRightBumper)
-        .toggleWhenPressed(new RunIntakeElevatorCommand(intake, elevator));
+        .toggleWhenPressed(riec);
+    createButton(driver1XBox, XboxController.Button.kStart).whenPressed(elevator::safetyRun);
+    
 
     var runShooter = // new Shoot(shooter, elevator);
         new RunCommand(shooter::on, shooter)
@@ -181,12 +184,12 @@ public class RobotContainer {
     createButton(joystick, 8).whenPressed(intake::liftOff);
 
     // new Button(() -> joystick.getPOV() == 0).whenPressed(intake::upABit, intake);
-    intake.setDefaultCommand(
-        new RunCommand(
-            () -> {
-              intake.move(joystick.getX());
-            },
-            intake));
+    // intake.setDefaultCommand(
+    //     new RunCommand(
+    //         () -> {
+    //           intake.move(joystick.getX());
+    //         },
+    //         intake));
 
     createButton(joystick, 11).whenPressed(intake::on);
     createButton(joystick, 12).whenPressed(intake::off);

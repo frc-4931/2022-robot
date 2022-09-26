@@ -49,15 +49,17 @@ public class RunIntakeElevatorCommand extends CommandBase {
 
   @Override
   public boolean isFinished() {
+    // System.out.println("intakeElevatorFinished");
     // elevator.isBallAtTop() ||
     return collecting && elevator.isBallAtBottom() || timer.hasElapsed(10);
   }
 
   @Override
   public void end(boolean interrupted) {
+    System.out.println("intakeElevatorFinished end; interrupted? " + interrupted);
     elevator.stop();
-    intake.off();
-    intake.lift();
+    // intake.off();
+    intake.liftAndOff();
   }
 
   // private enum State {

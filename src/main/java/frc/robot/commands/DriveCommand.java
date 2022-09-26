@@ -27,7 +27,7 @@ public class DriveCommand extends CommandBase {
   private Supplier<Double> zAxisSupplier;
   private Supplier<Double> multiplierSupplier;
   private boolean lockAngle = false;
-  private boolean fieldOriented = true;
+  private boolean fieldOriented = false;
   private boolean intakeIsFront = true;
   // private double driveMultiplier = 1;
   private PIDController turnController;
@@ -122,19 +122,19 @@ public class DriveCommand extends CommandBase {
     }
     // else get theta from joystick
     else {
-      if (fieldOriented) {
-        drivetrain.driveCartesian(
-            multiplier * yAxisSupplier.get(),
-            multiplier * xAxisSupplier.get(),
-            multiplier * zAxisSupplier.get(),
-            gyro.getAngle());
-      } else {
+      // if (fieldOriented) {
+      //   drivetrain.driveCartesian(
+      //       multiplier * yAxisSupplier.get(),
+      //       multiplier * xAxisSupplier.get(),
+      //       multiplier * zAxisSupplier.get(),
+      //       gyro.getAngle());
+      // } else {
         var driveMultiplier = multiplier * (intakeIsFront ? 1 : -1);
         drivetrain.driveCartesian(
             driveMultiplier * yAxisSupplier.get(),
             driveMultiplier * xAxisSupplier.get(),
             multiplier * zAxisSupplier.get());
-      }
+      // }
     }
   }
 

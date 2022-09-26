@@ -16,12 +16,13 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class Intake extends SubsystemBase {
   private final CANSparkMax intakeMotor;
   private final CANSparkMax liftMotor;
-  private boolean spinning = false;
+  private double desiredLiftPos;
+  // private boolean spinning = false;
 
   public Intake() {
     intakeMotor = INTAKE_MOTOR.createMotor();
     liftMotor = INTAKE_LIFT_MOTOR.createMotor();
-    SmartDashboard.putBoolean("Intake", spinning);
+    SmartDashboard.putBoolean("Intake", false);
     SmartDashboard.putNumber("Intake.UpPos", UP_POSITION);
     SmartDashboard.putNumber("Intake.DownPos", DOWN_POSITION);
   }
@@ -37,20 +38,28 @@ public class Intake extends SubsystemBase {
 
   public void lift() {
     var pos = SmartDashboard.getNumber("Intake.UpPos", UP_POSITION);
-    liftMotor.getPIDController().setReference(pos, ControlType.kSmartMotion, 0);
+    System.out.print("LIFTING to " + pos);
+    desiredLiftPos = pos;
+    
   }
 
-  public void slowLower() {
-    liftMotor.getPIDController().setReference(15, ControlType.kSmartMotion, 1);
-  }
+  // public void slowLower() {
+  //   liftMotor.getPIDController().setReference(15, ControlType.kSmartMotion, 1);
+  // }
 
   public void lower() {
     var pos = SmartDashboard.getNumber("Intake.DownPos", DOWN_POSITION);
-    liftMotor.getPIDController().setReference(pos, ControlType.kSmartMotion, 0);
+    desiredLiftPos = pos;
+    // liftMotor.getPIDController().setReference(pos, ControlType.kSmartMotion, 0);
   }
 
   public void liftOff() {
     liftMotor.set(0);
+  }
+
+  public void liftAndOff() {
+    off();
+    lift();
   }
 
   public boolean isLiftUp() {
@@ -60,10 +69,12 @@ public class Intake extends SubsystemBase {
 
   @Override
   public void periodic() {
+    // System.out.println("lift pos: " + liftMotor.getEncoder().getPosition());
     SmartDashboard.putNumber("LiftPosition", liftMotor.getEncoder().getPosition());
+    liftMotor.getPIDController().setReference(desiredLiftPos, ControlType.kSmartMotion, 0);
   }
 
-  private void setSpeed() {
+  private void setSpeed(boolean spinning) {
     if (spinning) {
       intakeMotor.getPIDController().setReference(SPEED, ControlType.kVelocity);
     } else {
@@ -74,17 +85,15 @@ public class Intake extends SubsystemBase {
   }
 
   public void on() {
-    spinning = true;
-    setSpeed();
+    setSpeed(true);
   }
 
   public void off() {
-    spinning = false;
-    setSpeed();
+    setSpeed(false);
   }
 
-  public void toggle() {
-    spinning = !spinning;
-    setSpeed();
-  }
+  // public void toggle() {
+  //   spinning = !spinning;
+  //   setSpeed();
+  // }
 }

@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class Elevator extends SubsystemBase {
   private CANSparkMax motor;
   private DigitalInput[] throughBeams;
+  private double runSpeed = SPEED;
 
   public Elevator() {
     motor = ELEVATOR_MOTOR.createMotor();
@@ -26,11 +27,15 @@ public class Elevator extends SubsystemBase {
   }
 
   public void runUp() {
-    motor.getPIDController().setReference(-SPEED, CANSparkMax.ControlType.kVelocity);
+    motor.getPIDController().setReference(-runSpeed, CANSparkMax.ControlType.kVelocity);
   }
 
   public void runDown() {
-    motor.getPIDController().setReference(SPEED * 0.25, CANSparkMax.ControlType.kVelocity);
+    motor.getPIDController().setReference(runSpeed * 0.25, CANSparkMax.ControlType.kVelocity);
+  }
+
+  public void safetyRun() {
+    runSpeed = 0;
   }
 
   public void stop() {
